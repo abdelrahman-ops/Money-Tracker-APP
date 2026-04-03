@@ -1,0 +1,49 @@
+{
+  "name": "money-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:local": "set \"VITE_API_URL=http://localhost:3001/api\" && vite",
+    "dev:vercel": "set \"VITE_API_URL=https://finora-money-tracker-server.vercel.app/api\" && vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "build:android": "npm run build && npx cap sync android",
+    "build:android:debug": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "build:android:release": "npm run build && npx cap sync android && cd android && gradlew.bat assembleRelease",
+    "build:android:debug:lan": "set \"VITE_API_URL=http://192.168.0.105:3001/api\" && npm run build:android:debug",
+    "build:android:release:lan": "set \"VITE_API_URL=http://192.168.0.105:3001/api\" && npm run build:android:release"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "axios": "^1.13.6",
+    "date-fns": "^4.1.0",
+    "dexie": "^4.0.9",
+    "dexie-react-hooks": "^1.1.7",
+    "framer-motion": "^11.11.0",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^2.13.3",
+    "uuid": "^11.0.3",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "jimp": "^1.6.0",
+    "postcss": "^8.4.49",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.15",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

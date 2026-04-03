@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #f2f2f7;
+    --color-card: #ffffff;
+    --color-border: #d1d1d6;
+    --color-text: #1c1c1e;
+    --color-muted: #8e8e93;
+    --color-primary: #007AFF;
+    --color-primary-light: #5AC8FA;
+    --color-surface: #f5f5f7;
+    --color-success: #34C759;
+    --color-danger: #FF3B30;
+    --color-warning: #FF9500;
+    --color-secondary-bg: #e5e5ea;
+  }
+
+  .dark {
+    --color-bg: #000000;
+    --color-card: #1c1c1e;
+    --color-border: #38383a;
+    --color-text: #f5f5f7;
+    --color-muted: #8e8e93;
+    --color-primary: #0A84FF;
+    --color-primary-light: #64D2FF;
+    --color-surface: #2c2c2e;
+    --color-success: #30D158;
+    --color-danger: #FF453A;
+    --color-warning: #FF9F0A;
+    --color-secondary-bg: #1c1c1e;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Roboto, sans-serif;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-[var(--color-card)] rounded-2xl border border-[var(--color-border)] p-4;
+  }
+
+  /* iOS-style grouped card with no inner borders */
+  .ios-card {
+    @apply bg-[var(--color-card)] rounded-2xl p-4;
+    box-shadow: 0 0.5px 0 0 var(--color-border),
+                0 0 0 0.5px var(--color-border);
+  }
+
+  /* iOS grouped section - wraps multiple items */
+  .ios-section {
+    @apply bg-[var(--color-card)] rounded-2xl overflow-hidden px-2 py-1;
+    box-shadow: 0 0.5px 0 0 var(--color-border),
+                0 0 0 0.5px var(--color-border);
+  }
+
+  .ios-section-item {
+    @apply flex items-center gap-3 px-4 py-3.5 active:bg-[var(--color-surface)] transition-colors;
+  }
+
+  .ios-section-item + .ios-section-item {
+    @apply border-t border-[var(--color-border)];
+    margin-left: 0;
+    padding-left: 1rem;
+    border-color: var(--color-border);
+  }
+
+  .ios-section-header {
+    @apply text-[13px] font-semibold text-[var(--color-muted)] uppercase tracking-wide px-5 mb-2;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-white font-semibold rounded-2xl px-6 py-3.5
+           active:scale-[0.97] transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--color-surface)] text-[var(--color-text)] font-medium rounded-2xl px-6 py-3.5
+           border border-[var(--color-border)] active:scale-[0.97] transition-all duration-200;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #007AFF, #5AC8FA);
+  }
+
+  .gradient-card {
+    background: linear-gradient(145deg, #0a0e21, #141b38, #1a2550);
+  }
+
+  .text-muted {
+    color: var(--color-muted);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Glass effect */
+  .glass {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    background-color: rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .glass {
+    background-color: rgba(28, 28, 30, 0.82);
+  }
+
+  /* iOS-style toggle */
+  .ios-toggle {
+    @apply relative w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer;
+  }
+
+  .ios-toggle-knob {
+    @apply absolute top-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-md transition-transform duration-300;
+  }
+
+  /* Haptic-style button feedback */
+  .haptic {
+    @apply active:scale-[0.96] transition-transform duration-150;
+  }
+
+  /* Shimmer for hidden balance */
+  .balance-hidden {
+    background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-border) 50%, var(--color-surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
