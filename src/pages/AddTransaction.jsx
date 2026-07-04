@@ -9,7 +9,7 @@ import { fetchTemplates as apiFetchTemplates } from '../services/apiServices';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Delete, Calendar, FileText, Repeat, StickyNote, CheckCheck,
-  ChevronRight, ChevronDown, ArrowDownCircle, ArrowUpCircle, RefreshCw, FolderOpen
+  ChevronLeft, ChevronRight, ChevronDown, ArrowDownCircle, ArrowUpCircle, RefreshCw, FolderOpen
 } from 'lucide-react';
 import LucideIcon from '../components/LucideIcon';
 import { refreshAllData } from '../utils/refreshData';
@@ -26,6 +26,7 @@ export default function AddTransaction() {
   const [searchParams] = useSearchParams();
   const isEditing = !!editId;
   const noteRef = useRef(null);
+  const dateInputRef = useRef(null);
 
   const returnMonth = searchParams.get('returnMonth');
   const returnDate = searchParams.get('returnDate');
@@ -196,10 +197,8 @@ export default function AddTransaction() {
 
   const formatDisplayDate = (d) => {
     const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     if (d === today) return 'Today';
-    if (d === yesterday) return 'Yesterday';
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (
@@ -266,17 +265,51 @@ export default function AddTransaction() {
 
       {/* ─── Meta Row: Date + Note + Account ─── */}
       <div className="flex gap-2 px-4 mb-3 shrink-0">
-        {/* Date chip */}
-        <label className="relative flex-1 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-sm cursor-pointer active:scale-[0.98] transition-all">
-          <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <span className="text-[12px] text-gray-600 font-medium truncate">{formatDisplayDate(date)}</span>
+        {/* Date chip with arrows to change the day from inside */}
+        <div className="flex-1 flex items-center bg-white/60 backdrop-blur-sm rounded-xl px-1.5 py-1 relative">
+          <button
+            type="button"
+            onClick={() => {
+              const currentDate = new Date(date + 'T00:00:00');
+              currentDate.setDate(currentDate.getDate() - 1);
+              setDate(currentDate.toISOString().slice(0, 10));
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 active:scale-90 transition-all shrink-0"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div
+            onClick={() => {
+              try {
+                dateInputRef.current?.showPicker();
+              } catch (e) {
+                dateInputRef.current?.click();
+              }
+            }}
+            className="flex-1 flex items-center justify-center gap-1 cursor-pointer min-w-0"
+          >
+            <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="text-[12px] text-gray-600 font-medium truncate">{formatDisplayDate(date)}</span>
+          </div>
           <input
+            ref={dateInputRef}
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
           />
-        </label>
+          <button
+            type="button"
+            onClick={() => {
+              const currentDate = new Date(date + 'T00:00:00');
+              currentDate.setDate(currentDate.getDate() + 1);
+              setDate(currentDate.toISOString().slice(0, 10));
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 active:scale-90 transition-all shrink-0"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
         {/* Note chip */}
         <button

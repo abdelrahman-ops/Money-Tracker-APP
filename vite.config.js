@@ -20,7 +20,6 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           charts: ['recharts'],
           motion: ['framer-motion'],
-          db: ['dexie', 'dexie-react-hooks'],
         },
       },
     },
