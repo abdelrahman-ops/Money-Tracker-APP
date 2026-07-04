@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
-import { requestPasswordReset } from '../services/authService';
+import { authClient } from '../lib/auth-client';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -16,14 +16,23 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const data = await requestPasswordReset(email);
-      setResult(data || { message: 'If the email exists, a reset link has been sent.' });
+      const { error: resetError } = await authClient.forgetPassword({
+        email,
+        redirectTo: window.location.origin + '/reset-password',
+      });
+      
+      if (resetError) {
+        setError(resetError.message || 'Failed to request password reset');
+      } else {
+        setResult({ message: 'If the email exists, a reset link has been sent to ' + email });
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to request password reset');
+      setError(err.message || 'Failed to request password reset');
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text)] flex items-center justify-center px-6">

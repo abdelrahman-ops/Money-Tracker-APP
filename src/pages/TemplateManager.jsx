@@ -5,7 +5,7 @@ import { useWalletStore } from '../store/walletStore';
 import { useCategoryStore } from '../store/categoryStore';
 import { fetchTemplates, createTemplate, updateTemplate, deleteTemplate as apiDeleteTemplate } from '../services/apiServices';
 import { createTransaction } from '../services/transactionService';
-import { ArrowLeft, Plus, Edit2, Trash2, X, Repeat, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, X, Repeat, Check, Zap, Play } from 'lucide-react';
 import { refreshAllData } from '../utils/refreshData';
 import { motion, AnimatePresence } from 'framer-motion';
 import LucideIcon from '../components/LucideIcon';
@@ -55,7 +55,7 @@ export default function TemplateManager() {
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) setAccountId(accounts[0]._id);
-  }, [accounts]);
+  }, [accounts, accountId]);
 
   const filteredCategories = categories.filter((c) => c.type === type);
 
@@ -113,15 +113,17 @@ export default function TemplateManager() {
   };
 
   const handleDelete = async (id) => {
-    try {
-      await apiDeleteTemplate(id);
-      loadTemplates();
-    } catch (e) {
-      console.error('Failed to delete template:', e);
-    }
-    if (editId === id) {
-      setShowForm(false);
-      resetForm();
+    if (window.confirm('Are you sure you want to delete this template?')) {
+      try {
+        await apiDeleteTemplate(id);
+        loadTemplates();
+      } catch (e) {
+        console.error('Failed to delete template:', e);
+      }
+      if (editId === id) {
+        setShowForm(false);
+        resetForm();
+      }
     }
   };
 
@@ -140,183 +142,217 @@ export default function TemplateManager() {
 
     if (result.success) {
       refreshAllData();
+      alert(`Applied template: "${template.title}"`);
     }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--color-bg)] safe-top safe-bottom">
+    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-2xl min-w-touch min-h-touch active:scale-90 transition-transform">
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 rounded-2xl min-w-touch min-h-touch flex items-center justify-center hover:bg-[var(--color-border)]/20 text-[var(--color-text)] transition-colors haptic"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-bold">Templates</h1>
+        <h1 className="text-[17px] font-black tracking-tight text-[var(--color-text)]">Transaction Templates</h1>
         <button
           onClick={openNew}
-          className="p-2.5 rounded-2xl gradient-primary text-white min-w-touch min-h-touch flex items-center justify-center active:scale-95 transition-transform shadow-lg shadow-purple-500/20"
+          className="w-10 h-10 rounded-2xl gradient-primary text-white flex items-center justify-center haptic shadow-md shadow-blue-500/20 active:scale-95 transition-transform"
         >
           <Plus className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Quick Actions Banner */}
-      <div className="px-4 mb-4">
-        <div className="ios-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap className="w-4 h-4 text-[var(--color-primary)]" />
-            <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wide">Quick Templates</span>
+      {/* Quick Actions Information Banner */}
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)]/55 p-4.5 rounded-[24px] shadow-sm mb-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/[0.03] rounded-full blur-xl pointer-events-none" />
+        <div className="flex items-start gap-3 relative z-10">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/10 shrink-0">
+            <Zap className="w-4.5 h-4.5 text-blue-500" strokeWidth={2.5} />
           </div>
-          <p className="text-xs text-[var(--color-muted)]">Tap play to instantly add a transaction from any template.</p>
+          <div>
+            <p className="text-[12.5px] font-bold text-[var(--color-text)]">One-Tap Execution</p>
+            <p className="text-[11px] text-[var(--color-muted)] font-semibold mt-0.5 leading-relaxed">
+              Tap the play button on any template row to instantly create a new transaction with its defaults.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Template List */}
-      <div className="px-4 space-y-2">
+      {/* Templates List container */}
+      <div className="space-y-3.5">
         {templates.length === 0 ? (
-          <div className="ios-card text-center py-12">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface)] flex items-center justify-center mx-auto mb-3">
-              <Repeat className="w-7 h-7 text-[var(--color-muted)]" />
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/55 text-center py-12 rounded-[28px] shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/35 flex items-center justify-center mx-auto mb-3">
+              <Repeat className="w-6 h-6 text-[var(--color-muted)]" />
             </div>
-            <p className="text-sm text-[var(--color-muted)] mb-1">No templates yet</p>
-            <p className="text-xs text-[var(--color-muted)] mb-4">Create templates for frequent transactions</p>
-            <button onClick={openNew} className="btn-primary text-sm px-6 py-2.5">
-              Create Template
+            <p className="text-[15px] font-bold mb-1 text-[var(--color-text)]">No Templates Configured</p>
+            <p className="text-[12.5px] text-[var(--color-muted)] mb-5">Set up default models for frequent payments.</p>
+            <button
+              onClick={openNew}
+              className="px-6 py-3 rounded-2xl gradient-primary text-white font-extrabold text-[13px] haptic shadow-md"
+            >
+              Create New Template
             </button>
           </div>
         ) : (
           templates.map((t, idx) => {
             const cat = catMap[t.categoryId];
             const acc = accMap[t.defaultAccountId];
+            const isExpense = t.type === 'expense';
+            
             return (
               <motion.div
                 key={t._id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="ios-card flex items-center gap-3 p-3.5"
+                className="bg-[var(--color-card)] border border-[var(--color-border)]/55 p-4 rounded-[24px] shadow-sm flex items-center justify-between gap-3 relative overflow-hidden"
               >
-                <div
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: (cat?.color || '#7c3aed') + '15' }}
-                >
-                  {cat ? (
-                    <LucideIcon name={cat.icon} className="w-5 h-5" style={{ color: cat.color }} />
-                  ) : (
-                    <Repeat className="w-5 h-5 text-[var(--color-primary)]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0" onClick={() => openEdit(t)}>
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-semibold text-sm truncate">{t.title}</p>
-                    {t.isRecurring && (
-                      <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-purple-500/10 text-[var(--color-primary)] text-[9px] font-bold uppercase">
-                        Day {t.recurringDate}
-                      </span>
+                <div className="flex items-center gap-3.5 flex-1 min-w-0" onClick={() => openEdit(t)}>
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border cursor-pointer"
+                    style={{
+                      backgroundColor: `${cat?.color || '#7c3aed'}12`,
+                      borderColor: `${cat?.color || '#7c3aed'}20`
+                    }}
+                  >
+                    {cat ? (
+                      <LucideIcon name={cat.icon} className="w-5 h-5" style={{ color: cat.color }} />
+                    ) : (
+                      <Repeat className="w-5 h-5 text-[var(--color-primary)]" />
                     )}
                   </div>
-                  <p className="text-xs text-[var(--color-muted)]">
-                    {cat?.name || t.type} {acc ? '· ' + acc.name : ''}
-                  </p>
+                  
+                  <div className="flex-1 min-w-0 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14.5px] font-bold truncate text-[var(--color-text)]">{t.title}</p>
+                      {t.isRecurring && (
+                        <span className="shrink-0 px-2 py-0.5 rounded-lg bg-violet-500/10 text-violet-500 text-[8.5px] font-black uppercase tracking-wider">
+                          Day {t.recurringDate}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11.5px] text-[var(--color-muted)] font-semibold mt-0.5">
+                      {cat?.name || t.type} {acc ? `• ${acc.name}` : ''}
+                    </p>
+                  </div>
                 </div>
-                <p className={'text-sm font-bold mr-1 ' + (t.type === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
-                  {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                </p>
-                <button
-                  onClick={() => handleQuickAdd(t)}
-                  className="w-9 h-9 rounded-xl bg-[var(--color-success)]/10 flex items-center justify-center shrink-0 active:scale-90 transition-transform"
-                >
-                  <Play className="w-4 h-4 text-[var(--color-success)]" />
-                </button>
-                <button
-                  onClick={() => handleDelete(t._id)}
-                  className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 active:scale-90 transition-transform"
-                >
-                  <Trash2 className="w-4 h-4 text-[var(--color-danger)]" />
-                </button>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <p className={`text-[15px] font-black ${isExpense ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
+                    {isExpense ? '-' : '+'}{formatCurrency(t.amount)}
+                  </p>
+                  
+                  <button
+                    onClick={() => handleQuickAdd(t)}
+                    className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/10 flex items-center justify-center shrink-0 active:scale-95 transition-all hover:bg-green-500/15 haptic"
+                    title="Quick Run"
+                  >
+                    <Play className="w-4 h-4 text-green-500 fill-green-500" strokeWidth={2.5} />
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDelete(t._id)}
+                    className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/10 flex items-center justify-center shrink-0 active:scale-95 transition-all hover:bg-red-500/15 haptic"
+                    title="Delete Template"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
               </motion.div>
             );
           })
         )}
       </div>
 
-      {/* Create/Edit Sheet */}
+      {/* Create/Edit Bottom Sheet Panel */}
       <AnimatePresence>
         {showForm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-end justify-center"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center px-4"
             onClick={() => { setShowForm(false); resetForm(); }}
           >
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--color-card)] rounded-t-3xl w-full max-w-lg p-5 pb-8 max-h-[85vh] overflow-y-auto"
+              className="bg-[var(--color-card)] rounded-t-[32px] border-t border-[var(--color-border)]/40 w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto z-110 shadow-2xl flex flex-col"
             >
-              <div className="w-10 h-1 bg-[var(--color-border)] rounded-full mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-center mb-5">
-                {editId ? 'Edit Template' : 'New Template'}
+              <div className="w-12 h-1 bg-[var(--color-border)]/70 rounded-full mx-auto mb-5" />
+              <h3 className="text-[17px] font-black text-center text-[var(--color-text)] mb-5">
+                {editId ? 'Modify Template' : 'New Template Setup'}
               </h3>
 
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Name</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Template Label</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Morning Coffee, Gym, Netflix"
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                    placeholder="e.g. Netflix, Rent Payment"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Amount</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Default Amount</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Type</label>
-                  <div className="flex gap-2">
-                    {['expense', 'income'].map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => { setType(t); setCategoryId(null); }}
-                        className={'flex-1 py-2.5 rounded-2xl text-sm font-semibold capitalize transition-all ' +
-                          (type === t
-                            ? (t === 'expense' ? 'bg-red-500/10 text-[var(--color-danger)]' : 'bg-emerald-500/10 text-[var(--color-success)]')
-                            : 'bg-[var(--color-surface)] text-[var(--color-muted)]')
-                        }
-                      >
-                        {t}
-                      </button>
-                    ))}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Flow Type</label>
+                  <div className="flex bg-[var(--color-surface)] border border-[var(--color-border)]/35 p-1 rounded-2xl">
+                    <button
+                      onClick={() => { setType('expense'); setCategoryId(null); }}
+                      className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all haptic ${
+                        type === 'expense'
+                          ? 'bg-[var(--color-danger)] text-white shadow-sm'
+                          : 'text-[var(--color-muted)]'
+                      }`}
+                    >
+                      Expense
+                    </button>
+                    <button
+                      onClick={() => { setType('income'); setCategoryId(null); }}
+                      className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all haptic ${
+                        type === 'income'
+                          ? 'bg-[var(--color-success)] text-white shadow-sm'
+                          : 'text-[var(--color-muted)]'
+                      }`}
+                    >
+                      Income
+                    </button>
                   </div>
                 </div>
 
                 {filteredCategories.length > 0 && (
-                  <div>
-                    <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Category</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Default Category</label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto bg-[var(--color-surface)] border border-[var(--color-border)]/35 p-3 rounded-2xl">
                       {filteredCategories.map((cat) => (
                         <button
                           key={cat._id}
                           onClick={() => setCategoryId(cat._id === categoryId ? null : cat._id)}
-                          className={'px-3 py-2 rounded-2xl text-xs font-medium transition-all border flex items-center gap-1.5 ' +
-                            (categoryId === cat._id
+                          className={`px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all border flex items-center gap-1.5 haptic ${
+                            categoryId === cat._id
                               ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                              : 'border-[var(--color-border)] text-[var(--color-muted)]')
-                          }
+                              : 'border-[var(--color-border)]/45 text-[var(--color-muted)]'
+                          }`}
                         >
                           <LucideIcon name={cat.icon} className="w-3.5 h-3.5" style={{ color: cat.color }} />
                           {cat.name}
@@ -326,12 +362,12 @@ export default function TemplateManager() {
                   </div>
                 )}
 
-                <div>
-                  <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Account</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Payment Method</label>
                   <select
                     value={accountId || ''}
                     onChange={(e) => setAccountId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm focus:outline-none"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[13.5px] font-bold rounded-2xl focus:outline-none text-[var(--color-text)]"
                   >
                     {accounts.map((a) => (
                       <option key={a._id} value={a._id}>{a.name}</option>
@@ -339,38 +375,47 @@ export default function TemplateManager() {
                   </select>
                 </div>
 
-                <div>
-                  <button
-                    onClick={() => setIsRecurring(!isRecurring)}
-                    className="w-full flex items-center gap-3 py-3"
-                  >
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-                      <Repeat className="w-5 h-5 text-[var(--color-primary)]" />
+                {/* Auto recurring controller */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-3 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/35">
+                    <div>
+                      <p className="text-[13.5px] font-bold text-[var(--color-text)] flex items-center gap-1.5">
+                        <Repeat className="w-4 h-4 text-[var(--color-primary)] animate-spin-slow" />
+                        Auto-recurring Scheduler
+                      </p>
+                      <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Post automatically on a monthly date</p>
                     </div>
-                    <div className="flex-1 text-left">
-                      <p className="text-sm font-medium">Auto-recurring</p>
-                      <p className="text-xs text-[var(--color-muted)]">Auto-add on a specific day each month</p>
-                    </div>
-                    <div className={`w-11 h-6 rounded-full transition-colors ${isRecurring ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}>
-                      <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-transform shadow-sm ${isRecurring ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => setIsRecurring(!isRecurring)}
+                      className={`w-11 h-6.5 rounded-full p-0.5 transition-colors duration-250 cursor-pointer outline-none relative flex items-center ${
+                        isRecurring ? 'gradient-primary justify-end' : 'bg-[var(--color-border)]/65 justify-start'
+                      }`}
+                    >
+                      <motion.div
+                        layout
+                        className="w-5 h-5 rounded-full bg-white shadow-sm"
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    </button>
+                  </div>
 
                   {isRecurring && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
-                      className="mt-2"
+                      className="mt-2 space-y-1.5"
                     >
-                      <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-1.5 block">Day of month</label>
-                      <div className="flex flex-wrap gap-1.5">
+                      <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Day of Month</label>
+                      <div className="grid grid-cols-7 gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)]/35 p-3 rounded-2xl">
                         {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
                           <button
                             key={day}
                             onClick={() => setRecurringDate(day)}
-                            className={'w-9 h-9 rounded-xl text-xs font-semibold transition-all ' +
-                              (recurringDate === day ? 'gradient-primary text-white' : 'bg-[var(--color-surface)] text-[var(--color-muted)] hover:bg-[var(--color-border)]')
-                            }
+                            className={`aspect-square rounded-xl text-[12px] font-extrabold transition-all haptic ${
+                              recurringDate === day
+                                ? 'gradient-primary text-white shadow-md'
+                                : 'hover:bg-[var(--color-card)] text-[var(--color-muted)]'
+                            }`}
                           >
                             {day}
                           </button>
@@ -383,9 +428,9 @@ export default function TemplateManager() {
                 <button
                   onClick={handleSave}
                   disabled={!title.trim() || !amount || parseFloat(amount) <= 0}
-                  className="w-full py-3.5 rounded-2xl gradient-primary text-white font-bold text-base active:scale-[0.98] transition-transform disabled:opacity-50"
+                  className="w-full py-4 rounded-2xl gradient-primary text-white font-extrabold text-[15.5px] shadow-lg shadow-blue-500/25 haptic active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
                 >
-                  {editId ? 'Update Template' : 'Save Template'}
+                  {editId ? 'Update Template Settings' : 'Create Template Model'}
                 </button>
               </div>
             </motion.div>

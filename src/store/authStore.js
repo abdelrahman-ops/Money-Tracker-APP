@@ -1,31 +1,34 @@
 import { create } from 'zustand';
-import { loginUser, registerUser, logoutUser } from '../services/authService';
+import { authClient } from '../lib/auth-client';
 
-export const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  accessToken: localStorage.getItem('access_token') || null,
-  refreshToken: localStorage.getItem('refresh_token') || null,
-  isAuthenticated: !!localStorage.getItem('access_token'),
+export const useAuthStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
   isLoading: false,
+  isHydrated: false,
   error: null,
+
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await loginUser(email, password);
-      localStorage.setItem('access_token', result.accessToken);
-      localStorage.setItem('refresh_token', result.refreshToken);
-      localStorage.setItem('user', JSON.stringify(result.user));
+      const { data, error } = await authClient.signIn.email({
+        email,
+        password,
+      });
+      if (error) {
+        const message = error.message || 'Login failed';
+        set({ isLoading: false, error: message });
+        return { success: false, error: message };
+      }
       set({
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        user: data.user,
         isAuthenticated: true,
         isLoading: false,
       });
       return { success: true };
     } catch (err) {
-      const message = err.response?.data?.error || 'Login failed';
+      const message = err.message || 'Login failed';
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
@@ -34,35 +37,38 @@ export const useAuthStore = create((set, get) => ({
   register: async (email, password, name, currency) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await registerUser(email, password, name, currency);
-      localStorage.setItem('access_token', result.accessToken);
-      localStorage.setItem('refresh_token', result.refreshToken);
-      localStorage.setItem('user', JSON.stringify(result.user));
+      const { data, error } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+        currency,
+      });
+      if (error) {
+        const message = error.message || 'Registration failed';
+        set({ isLoading: false, error: message });
+        return { success: false, error: message };
+      }
       set({
-        user: result.user,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        user: data.user,
         isAuthenticated: true,
         isLoading: false,
       });
       return { success: true };
     } catch (err) {
-      const message = err.response?.data?.error || 'Registration failed';
+      const message = err.message || 'Registration failed';
       set({ isLoading: false, error: message });
       return { success: false, error: message };
     }
   },
 
   logout: async () => {
-    const currentRefreshToken = get().refreshToken || localStorage.getItem('refresh_token');
-    await logoutUser(currentRefreshToken || undefined);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    try {
+      await authClient.signOut();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     set({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       error: null,
     });
@@ -70,11 +76,35 @@ export const useAuthStore = create((set, get) => ({
 
   clearError: () => set({ error: null }),
 
-  // Called on app startup to check if tokens exist
-  hydrate: () => {
-    const token = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    set({ isAuthenticated: !!token, user, accessToken: token, refreshToken });
+  // Called on app startup to restore active session from cookies
+  hydrate: async () => {
+    set({ isLoading: true });
+    try {
+      const { data } = await authClient.getSession();
+      if (data && data.user) {
+        set({
+          user: data.user,
+          isAuthenticated: true,
+          isLoading: false,
+          isHydrated: true,
+        });
+      } else {
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isHydrated: true,
+        });
+      }
+    } catch {
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isHydrated: true,
+      });
+    }
   },
+
 }));
+

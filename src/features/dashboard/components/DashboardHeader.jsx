@@ -12,7 +12,7 @@ export default function DashboardHeader({ greeting }) {
     <div className="flex items-center justify-between mb-5">
       <div>
         <p className="text-[13px] text-[var(--color-muted)]">{greeting}</p>
-        <h1 className="text-[28px] font-bold tracking-tight mt-0.5">Finora</h1>
+        <h1 className="brand-logo mt-0.5">Finora</h1>
       </div>
       <div className="flex items-center gap-2">
         <button

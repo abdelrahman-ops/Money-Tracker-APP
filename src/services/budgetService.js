@@ -19,3 +19,16 @@ export async function upsertBudget(budgetData) {
 export async function deleteBudget(id) {
   await apiClient.delete(`/budgets/${id}`);
 }
+
+export async function fetchBudgetSummary(monthKey) {
+  const { data } = await apiClient.get(`/budgets/summary/${monthKey}`);
+  return data.data;
+}
+
+export async function copyBudgetsForward(fromMonthKey, toMonthKey) {
+  const { data } = await apiClient.post('/budgets/copy-forward', {
+    fromMonthKey,
+    toMonthKey,
+  });
+  return data.data;
+}

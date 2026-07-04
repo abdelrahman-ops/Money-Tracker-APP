@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { parseTransactionInput, resolveCategory, resolveAccount } from '../services/aiParser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Check, ArrowRight } from 'lucide-react';
+import { Brain, Check, ArrowRight } from 'lucide-react';
 
-export default function QuickInput({ onParsed, categories = [], accounts = [] }) {
+export default function QuickInput({ onParsed, categories = [], accounts = [], onOpenCoach }) {
   const [text, setText] = useState('');
   const [preview, setPreview] = useState(null);
   const [isResolving, setIsResolving] = useState(false);
@@ -67,9 +67,14 @@ export default function QuickInput({ onParsed, categories = [], accounts = [] })
     <div className="mb-3">
       <div className="relative flex items-center gap-2">
         <div className="flex-1 relative">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
-            <Sparkles className="w-4 h-4 text-[var(--color-primary)]" />
-          </div>
+          <button
+            type="button"
+            onClick={onOpenCoach}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 p-0.5 rounded-lg text-[var(--color-primary)] hover:bg-white/5 active:scale-90 transition-all"
+            title="Open AI Coach"
+          >
+            <Brain className="w-4 h-4" />
+          </button>
           <input
             type="text"
             value={text}

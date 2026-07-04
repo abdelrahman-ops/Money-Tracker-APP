@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { hashPasscode } from '../utils/crypto';
+
 
 export const CURRENCIES = [
   { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', locale: 'en-EG' },
@@ -58,20 +60,66 @@ export const useAppStore = create((set, get) => ({
   confirmBalanceReveal: () => set({ balanceVisible: true, pendingBalanceReveal: false }),
 
   // Passcode lock
-  isLocked: localStorage.getItem('app_lockMode') !== 'never' && !!localStorage.getItem('app_passcode'),
-  passcode: localStorage.getItem('app_passcode') || null,
-  setPasscode: (code) => {
+  isLocked: localStorage.getItem('app_lockMode') !== 'never' && !!localStorage.getItem('app_passcode_hash'),
+  passcode: localStorage.getItem('app_passcode_hash') || null,
+  failedAttempts: parseInt(localStorage.getItem('app_failed_attempts') || '0', 10),
+  lockoutUntil: parseInt(localStorage.getItem('app_lockout_until') || '0', 10),
+  
+  setPasscode: async (code) => {
     if (code) {
-      localStorage.setItem('app_passcode', code);
+      const hash = await hashPasscode(code);
+      localStorage.setItem('app_passcode_hash', hash);
+      localStorage.removeItem('app_passcode'); // clean up old plaintext if exists
+      set({ passcode: hash, isLocked: get().lockMode !== 'never', failedAttempts: 0, lockoutUntil: 0 });
+      localStorage.setItem('app_failed_attempts', '0');
+      localStorage.setItem('app_lockout_until', '0');
     } else {
+      localStorage.removeItem('app_passcode_hash');
       localStorage.removeItem('app_passcode');
+      set({ passcode: null, isLocked: false, failedAttempts: 0, lockoutUntil: 0 });
+      localStorage.setItem('app_failed_attempts', '0');
+      localStorage.setItem('app_lockout_until', '0');
     }
-    set({ passcode: code, isLocked: !!code });
   },
-  unlock: () => set({ isLocked: false }),
+
+  verifyPasscode: async (code) => {
+    const now = Date.now();
+    const lockoutUntil = get().lockoutUntil;
+    if (lockoutUntil && now < lockoutUntil) {
+      return false;
+    }
+
+    const hash = await hashPasscode(code);
+    const isValid = hash === get().passcode;
+
+    if (isValid) {
+      localStorage.setItem('app_failed_attempts', '0');
+      localStorage.setItem('app_lockout_until', '0');
+      set({ failedAttempts: 0, lockoutUntil: 0, isLocked: false });
+      return true;
+    } else {
+      const newAttempts = get().failedAttempts + 1;
+      let newLockout = 0;
+      if (newAttempts >= 5) {
+        newLockout = now + 30 * 1000; // 30 seconds cooldown
+        localStorage.setItem('app_lockout_until', String(newLockout));
+      }
+      localStorage.setItem('app_failed_attempts', String(newAttempts));
+      set({ failedAttempts: newAttempts, lockoutUntil: newLockout });
+      return false;
+    }
+  },
+
+  unlock: () => {
+    set({ isLocked: false, failedAttempts: 0, lockoutUntil: 0 });
+    localStorage.setItem('app_failed_attempts', '0');
+    localStorage.setItem('app_lockout_until', '0');
+  },
+  
   lock: () => {
     if (get().passcode) set({ isLocked: true, balanceVisible: false });
   },
+
 
   // Lock mode: 'always' | 'timed' | 'never'
   lockMode: localStorage.getItem('app_lockMode') || 'always',

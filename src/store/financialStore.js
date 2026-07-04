@@ -35,17 +35,6 @@ export const useFinancialStore = create((set, get) => ({
     }
   },
 
-  loadDailyLimit: async () => {
-    try {
-      const limit = await getSetting('dailyLimit');
-      if (limit) {
-        set({ dailyLimit: limit.amount || 0, strictMode: limit.isStrictMode || false });
-      }
-    } catch (e) {
-      console.error('Failed to load daily limit:', e);
-    }
-  },
-
   loadInsights: async () => {
     set({ isLoadingInsights: true });
     try {

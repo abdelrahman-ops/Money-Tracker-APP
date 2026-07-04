@@ -19,11 +19,15 @@ export const useNotificationStore = create((set, get) => ({
       const all = data.data || [];
       const { readIds, shownIds } = get();
 
-      const enriched = all.map(n => ({
-        ...n,
-        isRead: readIds.has(n.id) ? true : n.isRead,
-        shownInModal: shownIds.has(n.id),
-      }));
+      const enriched = all.map(n => {
+        const id = n._id || n.id;
+        return {
+          ...n,
+          id,
+          isRead: readIds.has(id) ? true : n.isRead,
+          shownInModal: shownIds.has(id),
+        };
+      });
 
       const unreadCount = enriched.filter(n => !n.isRead).length;
       set({ notifications: enriched, unreadCount, isLoading: false });
@@ -44,27 +48,37 @@ export const useNotificationStore = create((set, get) => ({
     shownIds.add(id);
     set({
       shownIds: new Set(shownIds),
-      notifications: notifications.map(n => n.id === id ? { ...n, shownInModal: true } : n),
+      notifications: notifications.map(n => (n.id === id || n._id === id) ? { ...n, shownInModal: true } : n),
     });
   },
 
   /** Mark a specific notification as read */
-  markAsRead: (id) => {
+  markAsRead: async (id) => {
     const { readIds, notifications } = get();
     readIds.add(id);
-    const updated = notifications.map(n => n.id === id ? { ...n, isRead: true, shownInModal: true } : n);
+    const updated = notifications.map(n => (n.id === id || n._id === id) ? { ...n, isRead: true, shownInModal: true } : n);
     set({
       readIds: new Set(readIds),
       notifications: updated,
       unreadCount: updated.filter(n => !n.isRead).length,
     });
+    try {
+      await apiClient.put(`/notifications/${id}/read`);
+    } catch (e) {
+      console.error('Failed to mark notification as read in DB:', e);
+    }
   },
 
   /** Mark all notifications as read */
-  markAllAsRead: () => {
+  markAllAsRead: async () => {
     const { notifications } = get();
     const updated = notifications.map(n => ({ ...n, isRead: true, shownInModal: true }));
     set({ notifications: updated, unreadCount: 0 });
+    try {
+      await apiClient.put('/notifications/read-all');
+    } catch (e) {
+      console.error('Failed to mark all notifications as read in DB:', e);
+    }
   },
 
   toggleDropdown: () => set(s => ({ dropdownOpen: !s.dropdownOpen })),

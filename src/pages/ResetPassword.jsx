@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { resetPassword } from '../services/authService';
+import { authClient } from '../lib/auth-client';
 
 export default function ResetPassword() {
   const location = useLocation();
@@ -33,15 +33,24 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const data = await resetPassword(token, password);
-      setSuccess(data?.message || 'Password updated successfully. Redirecting to login...');
-      setTimeout(() => navigate('/login', { replace: true }), 1200);
+      const { error: resetError } = await authClient.resetPassword({
+        newPassword: password,
+        token: token,
+      });
+
+      if (resetError) {
+        setError(resetError.message || 'Failed to reset password');
+      } else {
+        setSuccess('Password updated successfully. Redirecting to login...');
+        setTimeout(() => navigate('/login', { replace: true }), 1200);
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to reset password');
+      setError(err.message || 'Failed to reset password');
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text)] flex items-center justify-center px-6">

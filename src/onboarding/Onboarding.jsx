@@ -63,7 +63,7 @@ export default function Onboarding({ onFinish }) {
   const isLastStep = step === STEPS.length - 1;
 
   const handleExit = useCallback(() => {
-    window.history.replaceState(null, '', '/wallet/new');
+    window.history.replaceState(null, '', '/dashboard');
     onFinish();
   }, [onFinish]);
 

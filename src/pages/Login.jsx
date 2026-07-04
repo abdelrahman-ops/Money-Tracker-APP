@@ -2,41 +2,25 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { useAppStore, CURRENCIES } from '../store/appStore';
-import { seedDefaults } from '../services/apiServices';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const register = useAuthStore((s) => s.register);
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
   const clearError = useAuthStore((s) => s.clearError);
-  const currency = useAppStore((s) => s.currency);
 
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
 
-    let result;
-    if (isRegister) {
-      result = await register(email, password, name, currency);
-    } else {
-      result = await login(email, password);
-    }
-
+    const result = await login(email, password);
     if (result.success) {
-      // Seed defaults for new users
-      if (isRegister) {
-        try { await seedDefaults(); } catch {}
-      }
       navigate('/', { replace: true });
     }
   };
@@ -53,33 +37,14 @@ export default function Login() {
           <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[var(--color-primary)]/30">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-[32px] font-bold tracking-tight">Finora</h1>
+          <h1 className="brand-logo">Finora</h1>
           <p className="text-[14px] text-[var(--color-muted)] mt-1">
-            {isRegister ? 'Create your account' : 'Welcome back'}
+            Welcome back to your personal finance dashboard
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
-          {isRegister && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="relative"
-            >
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-muted)]" />
-              <input
-                type="text"
-                placeholder="Full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required={isRegister}
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
-              />
-            </motion.div>
-          )}
-
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-muted)]" />
             <input
@@ -102,7 +67,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              autoComplete="current-password"
               className="w-full pl-12 pr-12 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
             />
             <button
@@ -139,7 +104,7 @@ export default function Login() {
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                {isRegister ? 'Create Account' : 'Sign In'}
+                Sign In
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -154,18 +119,13 @@ export default function Login() {
 
         {/* Toggle */}
         <p className="text-center text-[14px] text-[var(--color-muted)] mt-6">
-          {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => {
-              setIsRegister(!isRegister);
-              clearError();
-            }}
-            className="text-[var(--color-primary)] font-semibold"
-          >
-            {isRegister ? 'Sign In' : 'Sign Up'}
-          </button>
+          Don't have an account?{' '}
+          <Link to="/register" className="text-[var(--color-primary)] font-semibold">
+            Sign Up
+          </Link>
         </p>
       </motion.div>
     </div>
   );
 }
+

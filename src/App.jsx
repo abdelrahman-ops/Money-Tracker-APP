@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAppStore } from './store/appStore';
@@ -15,21 +15,31 @@ import SplashScreen from './onboarding/SplashScreen';
 import InstallBanner from './components/InstallBanner';
 import GlobalPasscodeModal from './components/GlobalPasscodeModal';
 import Onboarding from './onboarding/Onboarding';
-import DashboardPage from './features/dashboard/DashboardPage';
-import Transactions from './pages/Transactions';
-import AddTransaction from './pages/AddTransaction';
-import Wallets from './pages/Wallets';
-import WalletForm from './pages/WalletForm';
-import WalletInsights from './pages/WalletInsights';
-import Settings from './pages/Settings';
-import Analytics from './pages/Analytics';
-import TemplateManager from './pages/TemplateManager';
-import SavingsGoals from './pages/SavingsGoals';
-import DebtTracker from './pages/DebtTracker';
-import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+
+// Lazy load page components
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const AddTransaction = lazy(() => import('./pages/AddTransaction'));
+const Wallets = lazy(() => import('./pages/Wallets'));
+const WalletForm = lazy(() => import('./pages/WalletForm'));
+const WalletInsights = lazy(() => import('./pages/WalletInsights'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Budgets = lazy(() => import('./pages/Budgets'));
+const TemplateManager = lazy(() => import('./pages/TemplateManager'));
+const SavingsGoals = lazy(() => import('./pages/SavingsGoals'));
+const DebtTracker = lazy(() => import('./pages/DebtTracker'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Landing = lazy(() => import('./pages/Landing'));
+
 import NotificationModal from './components/NotificationModal';
+import apiClient from './api/client';
+import { useNotificationStore } from './store/notificationStore';
+
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -45,27 +55,66 @@ function ScrollToTop() {
  */
 function AppInitializer() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || (user && !user.emailVerified)) return;
 
-    // Fetch core data from API
-    useWalletStore.getState().fetchWallets();
-    useCategoryStore.getState().fetchCategories();
-    useTransactionStore.getState().fetchTransactions();
+    // Single parallel bootstrap call for all core data
+    async function bootstrap() {
+      try {
+        const { data } = await apiClient.get('/data/bootstrap');
+        const payload = data.data;
+        if (payload) {
+          useWalletStore.setState({ wallets: payload.wallets || [] });
+          useCategoryStore.setState({ categories: payload.categories || [] });
+          useTransactionStore.setState({
+            transactions: payload.transactions || [],
+            total: payload.transactions?.length || 0,
+          });
 
-    // Financial intelligence
-    const fs = useFinancialStore.getState();
-    fs.loadDailyLimit();
-    fs.loadInsights();
-    fs.loadHealthScore();
-    fs.loadProjection();
+          // Enrich and set notifications
+          const readIds = useNotificationStore.getState().readIds;
+          const shownIds = useNotificationStore.getState().shownIds;
+          const enriched = (payload.notifications || []).map(n => {
+            const id = n._id || n.id;
+            return {
+              ...n,
+              id,
+              isRead: readIds.has(id) ? true : n.isRead,
+              shownInModal: shownIds.has(id),
+            };
+          });
+          useNotificationStore.setState({
+            notifications: enriched,
+            unreadCount: enriched.filter(n => !n.isRead).length
+          });
+        }
+      } catch (err) {
+        console.error('Failed to bootstrap application data:', err);
+      }
 
-    // NOTE: seedDefaults removed — server seeds on registration only.
-    // Calling it on every app load caused wallet duplication.
-  }, [isAuthenticated]);
+      // Load financial intelligence in the background
+      const fs = useFinancialStore.getState();
+      fs.loadDailyLimit();
+      fs.loadInsights();
+      fs.loadHealthScore();
+      fs.loadProjection();
+    }
+
+    bootstrap();
+  }, [isAuthenticated, user]);
 
   return null;
+}
+
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-[60dvh] w-full flex items-center justify-center bg-[var(--color-bg)]">
+      <div className="w-8 h-8 rounded-full border-4 border-[var(--color-primary)]/20 border-t-[var(--color-primary)] animate-spin" />
+    </div>
+  );
 }
 
 export default function App() {
@@ -127,32 +176,43 @@ export default function App() {
           <InstallBanner />
           <GlobalPasscodeModal />
         </main>
-        <Routes>
-          {/* Public */}
-          <Route path="login" element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Login />
-          } />
-          <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="reset-password" element={<ResetPassword />} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />
+            } />
+            <Route path="login" element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+            } />
+            <Route path="register" element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
+            } />
+            <Route path="verify-email" element={<VerifyEmail />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="reset-password" element={<ResetPassword />} />
 
-          {/* Protected */}
-          <Route element={<AuthGuard><Layout /></AuthGuard>}>
-            <Route index element={<DashboardPage />} />
-            <Route path="calendar" element={<Transactions />} />
-            <Route path="wallets" element={<Wallets />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="analytics" element={<Analytics />} />
-          </Route>
-          <Route path="add" element={<AuthGuard><AddTransaction /></AuthGuard>} />
-          <Route path="add/:editId" element={<AuthGuard><AddTransaction /></AuthGuard>} />
-          <Route path="wallet/new" element={<AuthGuard><WalletForm /></AuthGuard>} />
-          <Route path="wallet/edit/:id" element={<AuthGuard><WalletForm /></AuthGuard>} />
-          <Route path="wallet/insights/:id" element={<AuthGuard><WalletInsights /></AuthGuard>} />
-          <Route path="templates" element={<AuthGuard><TemplateManager /></AuthGuard>} />
-          <Route path="savings" element={<AuthGuard><SavingsGoals /></AuthGuard>} />
-          <Route path="debts" element={<AuthGuard><DebtTracker /></AuthGuard>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+
+            {/* Protected */}
+            <Route element={<AuthGuard><Layout /></AuthGuard>}>
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="calendar" element={<Transactions />} />
+              <Route path="wallets" element={<Wallets />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="budgets" element={<Budgets />} />
+            </Route>
+            <Route path="add" element={<AuthGuard><AddTransaction /></AuthGuard>} />
+            <Route path="add/:editId" element={<AuthGuard><AddTransaction /></AuthGuard>} />
+            <Route path="wallet/new" element={<AuthGuard><WalletForm /></AuthGuard>} />
+            <Route path="wallet/edit/:id" element={<AuthGuard><WalletForm /></AuthGuard>} />
+            <Route path="wallet/insights/:id" element={<AuthGuard><WalletInsights /></AuthGuard>} />
+            <Route path="templates" element={<AuthGuard><TemplateManager /></AuthGuard>} />
+            <Route path="savings" element={<AuthGuard><SavingsGoals /></AuthGuard>} />
+            <Route path="debts" element={<AuthGuard><DebtTracker /></AuthGuard>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </div>
     </BrowserRouter>
   );

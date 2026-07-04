@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, CURRENCIES } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
@@ -6,10 +6,11 @@ import { exportData as apiExportData, exportCsv as apiExportCsv, importData as a
 import {
   Moon, Sun, Lock, Shield, Download, Upload, FileText, Trash2,
   ChevronRight, Globe, Palette, Info, Repeat, Check, Target, Users,
-  HandCoins, Clock, ShieldAlert, Gauge, LogOut
+  HandCoins, Clock, ShieldAlert, Gauge, LogOut, ArrowLeft
 } from 'lucide-react';
 import { refreshAllData } from '../utils/refreshData';
 import { motion, AnimatePresence } from 'framer-motion';
+import PasscodeInput from '../components/PasscodeInput';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -28,7 +29,6 @@ export default function Settings() {
   const [showPasscodeSetup, setShowPasscodeSetup] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [newCode, setNewCode] = useState('');
-  const [confirmCode, setConfirmCode] = useState('');
   const [codeStep, setCodeStep] = useState(1);
   const [codeError, setCodeError] = useState('');
   const [importStatus, setImportStatus] = useState(null);
@@ -38,14 +38,14 @@ export default function Settings() {
   const [showDailyLimit, setShowDailyLimit] = useState(false);
 
   // Load daily limit on mount via API
-  useState(() => {
+  useEffect(() => {
     getSetting('dailyLimit').then((dl) => {
       if (dl) {
         setDailyLimitAmount(dl.amount > 0 ? String(dl.amount) : '');
         setDailyLimitStrict(!!dl.isStrictMode);
       }
     }).catch(() => {});
-  });
+  }, []);
 
   const currentCurrency = CURRENCIES.find((c) => c.code === currency) || CURRENCIES[0];
 
@@ -55,40 +55,28 @@ export default function Settings() {
     } else {
       setShowPasscodeSetup(true);
       setNewCode('');
-      setConfirmCode('');
       setCodeStep(1);
       setCodeError('');
     }
   };
 
-  const handleCodeDigit = (digit) => {
+  const handlePasscodeSetupComplete = async (code) => {
     if (codeStep === 1) {
-      if (newCode.length < 4) {
-        const next = newCode + digit;
-        setNewCode(next);
-        if (next.length === 4) setTimeout(() => setCodeStep(2), 200);
-      }
+      setNewCode(code);
+      setCodeStep(2);
+      return true;
     } else {
-      if (confirmCode.length < 4) {
-        const next = confirmCode + digit;
-        setConfirmCode(next);
-        if (next.length === 4) {
-          if (next === newCode) {
-            setPasscode(next);
-            setShowPasscodeSetup(false);
-          } else {
-            setCodeError('Codes do not match');
-            setConfirmCode('');
-          }
-        }
+      if (code === newCode) {
+        await setPasscode(code);
+        setShowPasscodeSetup(false);
+        return true;
+      } else {
+        setCodeError('Passcodes do not match. Restarting...');
+        setNewCode('');
+        setCodeStep(1);
+        return false;
       }
     }
-  };
-
-  const handleCodeDelete = () => {
-    setCodeError('');
-    if (codeStep === 1) setNewCode((p) => p.slice(0, -1));
-    else setConfirmCode((p) => p.slice(0, -1));
   };
 
   const handleExportJSON = async () => {
@@ -127,7 +115,7 @@ export default function Settings() {
       const text = await file.text();
       const payload = JSON.parse(text);
       await apiImportData(payload);
-      refreshAllData(); // <== Added this!
+      refreshAllData();
       setImportStatus('success');
       setTimeout(() => setImportStatus(null), 3000);
     } catch {
@@ -138,7 +126,7 @@ export default function Settings() {
   };
 
   const handleClearData = async () => {
-    if (window.confirm('Delete ALL data? This cannot be undone.')) {
+    if (window.confirm('Are you absolutely sure you want to delete ALL data? This operation is permanent and cannot be undone.')) {
       try {
         await apiClearAllData();
       } catch (e) {
@@ -155,335 +143,343 @@ export default function Settings() {
     navigate('/login', { replace: true });
   };
 
-  const currentCode = codeStep === 1 ? newCode : confirmCode;
-  const setupKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
-
   return (
-    <div className="px-4 pt-5">
-      <h1 className="text-[28px] font-bold tracking-tight mb-6">Settings</h1>
-
-      {/* GENERAL */}
-      <p className="ios-section-header">General</p>
-      <div className="ios-section mb-6">
-        <button onClick={toggleDarkMode} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center" style={{ backgroundColor: darkMode ? '#5856d6' : '#ff9500' }}>
-            {darkMode ? <Moon className="w-4 h-4 text-white" /> : <Sun className="w-4 h-4 text-white" />}
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Dark Mode</p>
-          </div>
-          <div className={`ios-toggle ${darkMode ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}>
-            <div className={`ios-toggle-knob ${darkMode ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
-          </div>
+    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 rounded-2xl min-w-touch min-h-touch flex items-center justify-center hover:bg-[var(--color-border)]/20 text-[var(--color-text)] transition-colors haptic"
+        >
+          <ArrowLeft className="w-5 h-5" />
         </button>
-
-        <button onClick={() => setShowCurrencyPicker(true)} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#30d158] flex items-center justify-center">
-            <Globe className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Currency</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-[15px] text-[var(--color-muted)]">{currentCurrency.code}</span>
-            <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-          </div>
-        </button>
+        <h1 className="text-[17px] font-black tracking-tight text-[var(--color-text)]">Preferences</h1>
+        <div className="w-10" />
       </div>
 
-      {/* SECURITY */}
-      <p className="ios-section-header">Security</p>
-      <div className="ios-section mb-6">
-        <button onClick={handlePasscodeToggle} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#ff453a] flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Passcode Lock</p>
-          </div>
-          <div className={`ios-toggle ${passcode ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}>
-            <div className={`ios-toggle-knob ${passcode ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
-          </div>
-        </button>
-
-        {passcode && (
-          <>
-            <div className="ios-section-item w-full flex-col items-start gap-2">
-              <p className="text-[13px] text-[var(--color-muted)] font-medium">Lock Mode</p>
-              <div className="flex gap-1.5 w-full">
-                {[
-                  { key: 'always', label: 'Always', desc: 'Every time' },
-                  { key: 'timed', label: 'After Time', desc: `${lockTimeout}m` },
-                  { key: 'never', label: 'Never', desc: 'Manual only' },
-                ].map((mode) => (
-                  <button
-                    key={mode.key}
-                    onClick={() => setLockMode(mode.key)}
-                    className={'flex-1 py-2 rounded-xl text-[12px] font-semibold transition-all ' +
-                      (lockMode === mode.key
-                        ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]/30'
-                        : 'bg-[var(--color-surface)] text-[var(--color-muted)]')
-                    }
-                  >
-                    {mode.label}
-                  </button>
-                ))}
+      <div className="space-y-6">
+        {/* GENERAL SECTION */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-muted)] font-extrabold uppercase tracking-widest px-4 mb-2">General Settings</p>
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/45 rounded-3xl p-1.5 divide-y divide-[var(--color-border)]/35 shadow-sm">
+            {/* Dark Mode Row */}
+            <div className="flex items-center justify-between px-3 py-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-white border"
+                  style={{
+                    backgroundColor: darkMode ? '#af52de' : '#ff9500',
+                    borderColor: darkMode ? '#af52de35' : '#ff950035'
+                  }}
+                >
+                  {darkMode ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Dark Interface</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Toggle interface appearance</p>
+                </div>
               </div>
+              <button
+                onClick={toggleDarkMode}
+                className={`w-12 h-7 rounded-full p-0.5 transition-colors duration-250 cursor-pointer outline-none relative flex items-center ${
+                  darkMode ? 'gradient-primary justify-end' : 'bg-[var(--color-surface)] border border-[var(--color-border)]/65 justify-start'
+                }`}
+              >
+                <motion.div
+                  layout
+                  className="w-5.5 h-5.5 rounded-full bg-white shadow-sm"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </button>
             </div>
 
-            {lockMode === 'timed' && (
-              <div className="ios-section-item w-full">
-                <div className="w-[30px] h-[30px] rounded-lg bg-[#5856d6] flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-white" />
+            {/* Currency Row */}
+            <button onClick={() => setShowCurrencyPicker(true)} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/10">
+                  <Globe className="w-4.5 h-4.5 text-emerald-500" strokeWidth={2.5} />
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="text-[15px] font-normal">Lock After</p>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Base Currency</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Formatting and conversion rates</p>
                 </div>
-                <select
-                  value={lockTimeout}
-                  onChange={(e) => setLockTimeout(parseInt(e.target.value))}
-                  className="bg-[var(--color-surface)] rounded-lg px-2 py-1 text-[14px]"
-                >
-                  <option value="1">1 min</option>
-                  <option value="5">5 min</option>
-                  <option value="15">15 min</option>
-                  <option value="30">30 min</option>
-                  <option value="60">1 hour</option>
-                </select>
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13.5px] font-extrabold text-[var(--color-primary)]">{currentCurrency.code}</span>
+                <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* SECURITY SECTION */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-muted)] font-extrabold uppercase tracking-widest px-4 mb-2">Privacy & Security</p>
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/45 rounded-3xl p-1.5 divide-y divide-[var(--color-border)]/35 shadow-sm">
+            {/* Passcode Switch Row */}
+            <div className="flex items-center justify-between px-3 py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/10">
+                  <Shield className="w-4.5 h-4.5 text-blue-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Passcode Lock</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Verify PIN when launching app</p>
+                </div>
+              </div>
+              <button
+                onClick={handlePasscodeToggle}
+                className={`w-12 h-7 rounded-full p-0.5 transition-colors duration-250 cursor-pointer outline-none relative flex items-center ${
+                  passcode ? 'gradient-primary justify-end' : 'bg-[var(--color-surface)] border border-[var(--color-border)]/65 justify-start'
+                }`}
+              >
+                <motion.div
+                  layout
+                  className="w-5.5 h-5.5 rounded-full bg-white shadow-sm"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </button>
+            </div>
+
+            {passcode && (
+              <>
+                {/* Lock Mode Selector */}
+                <div className="px-3 py-3.5 flex flex-col items-start gap-2.5">
+                  <span className="text-[12px] text-[var(--color-muted)] font-extrabold uppercase tracking-wider">Lock Enforcement</span>
+                  <div className="flex gap-1.5 w-full bg-[var(--color-surface)] border border-[var(--color-border)]/35 p-1 rounded-2xl">
+                    {[
+                      { key: 'always', label: 'Always', desc: 'Every time' },
+                      { key: 'timed', label: 'Timed', desc: `${lockTimeout}m` },
+                      { key: 'never', label: 'Never', desc: 'Manual only' },
+                    ].map((mode) => (
+                      <button
+                        key={mode.key}
+                        onClick={() => setLockMode(mode.key)}
+                        className={`flex-1 py-2 rounded-xl text-[12px] font-bold transition-all haptic ${
+                          lockMode === mode.key
+                            ? 'bg-[var(--color-card)] text-[var(--color-text)] border border-[var(--color-border)]/45 shadow-sm'
+                            : 'text-[var(--color-muted)]'
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lock Timeout selector */}
+                {lockMode === 'timed' && (
+                  <div className="flex items-center justify-between px-3 py-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8.5 h-8.5 rounded-xl bg-violet-500/10 flex items-center justify-center border border-violet-500/10">
+                        <Clock className="w-4.5 h-4.5 text-violet-500" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-bold text-[var(--color-text)]">Lock Timeout Duration</p>
+                        <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Time to elapse before locking</p>
+                      </div>
+                    </div>
+                    <select
+                      value={lockTimeout}
+                      onChange={(e) => setLockTimeout(parseInt(e.target.value))}
+                      className="bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[13px] font-bold rounded-xl px-3 py-2 text-[var(--color-text)] outline-none"
+                    >
+                      <option value="1">1 Min</option>
+                      <option value="5">5 Mins</option>
+                      <option value="15">15 Mins</option>
+                      <option value="30">30 Mins</option>
+                      <option value="60">1 Hour</option>
+                    </select>
+                  </div>
+                )}
+              </>
             )}
-          </>
+          </div>
+        </div>
+
+        {/* CONTROLS SECTION */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-muted)] font-extrabold uppercase tracking-widest px-4 mb-2">Controls & Limits</p>
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/45 rounded-3xl p-1.5 divide-y divide-[var(--color-border)]/35 shadow-sm">
+            {/* Daily Limit trigger */}
+            <button onClick={() => setShowDailyLimit(true)} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/10">
+                  <ShieldAlert className="w-4.5 h-4.5 text-orange-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Daily Spending Limit</p>
+                  <p className="text-[10.5px] text-[var(--color-muted)] font-semibold mt-0.5">
+                    {dailyLimitAmount ? `${currentCurrency.symbol}${dailyLimitAmount}/day${dailyLimitStrict ? ' (Strict Limit)' : ''}` : 'Not configured'}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+          </div>
+        </div>
+
+        {/* DATA MANAGEMENT */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-muted)] font-extrabold uppercase tracking-widest px-4 mb-2">Backup & Data</p>
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/45 rounded-3xl p-1.5 divide-y divide-[var(--color-border)]/35 shadow-sm">
+            {/* Export JSON */}
+            <button onClick={handleExportJSON} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-sky-500/10 flex items-center justify-center border border-sky-500/10">
+                  <Download className="w-4.5 h-4.5 text-sky-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Export Data Backup</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Download full JSON database dump</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+
+            {/* Export CSV */}
+            <button onClick={handleExportCSV} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-violet-500/10 flex items-center justify-center border border-violet-500/10">
+                  <FileText className="w-4.5 h-4.5 text-violet-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Export CSV Spreadsheet</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Compatible with Excel or Sheets</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+
+            {/* Import Data */}
+            <button onClick={() => fileRef.current?.click()} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/10">
+                  <Upload className="w-4.5 h-4.5 text-green-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Import JSON Backup</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Restore records from local backup</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+            <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+          </div>
+        </div>
+
+        {importStatus && (
+          <p className={`text-[12px] text-center font-bold tracking-tight py-1 ${importStatus === 'success' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}`}>
+            {importStatus === 'success' ? 'Import completed successfully! 🎉' : 'Failed to import JSON data.'}
+          </p>
         )}
+
+        {/* PROFILE SECTION */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-muted)] font-extrabold uppercase tracking-widest px-4 mb-2">Account Administration</p>
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)]/45 rounded-3xl p-1.5 shadow-sm">
+            <button onClick={handleLogout} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-[var(--color-surface)]/20 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/10">
+                  <LogOut className="w-4.5 h-4.5 text-orange-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-text)]">Sign Out Session</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">End active authentication state</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+          </div>
+        </div>
+
+        {/* DANGER ZONE */}
+        <div>
+          <p className="text-[11.5px] text-[var(--color-danger)] font-extrabold uppercase tracking-widest px-4 mb-2">Danger Administration</p>
+          <div className="bg-[var(--color-card)] border border-red-500/35 rounded-3xl p-1.5 shadow-sm">
+            <button onClick={handleClearData} className="w-full flex items-center justify-between px-3 py-3 haptic hover:bg-red-500/5 transition-colors text-left outline-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8.5 h-8.5 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/10">
+                  <Trash2 className="w-4.5 h-4.5 text-red-500" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--color-danger)]">Clear All Local Records</p>
+                  <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Delete every single transaction history</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4.5 h-4.5 text-[var(--color-muted)]" />
+            </button>
+          </div>
+        </div>
+
+        <div className="text-center pt-4 pb-2 text-[11px] font-bold text-[var(--color-muted)] tracking-wider">
+          <p>Finora Premium Fintech v2.0</p>
+          <p className="opacity-70 mt-1 font-semibold">Protected under secure cookie encryption.</p>
+        </div>
       </div>
 
-      {/* BEHAVIOR */}
-      <p className="ios-section-header">Behavior Control</p>
-      <div className="ios-section mb-6">
-        <button onClick={() => setShowDailyLimit(true)} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#ff9500] flex items-center justify-center">
-            <ShieldAlert className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Daily Spending Limit</p>
-            <p className="text-[12px] text-[var(--color-muted)]">
-              {dailyLimitAmount ? `${dailyLimitAmount}/day${dailyLimitStrict ? ' (strict)' : ''}` : 'Not set'}
-            </p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-      </div>
-
-      {/* FEATURES */}
-      <p className="ios-section-header">Features</p>
-      <div className="ios-section mb-6">
-        <button onClick={() => navigate('/templates')} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#af52de] flex items-center justify-center">
-            <Repeat className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Templates</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-        <button onClick={() => navigate('/savings')} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#34c759] flex items-center justify-center">
-            <HandCoins className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Savings Goals</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-        <button onClick={() => navigate('/debts')} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#ff453a] flex items-center justify-center">
-            <Users className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Debt Tracker</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-      </div>
-
-      {/* DATA */}
-      <p className="ios-section-header">Data</p>
-      <div className="ios-section mb-6">
-        <button onClick={handleExportJSON} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#007aff] flex items-center justify-center">
-            <Download className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Export JSON</p>
-            <p className="text-[12px] text-[var(--color-muted)]">Full backup</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-
-        <button onClick={handleExportCSV} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#5856d6] flex items-center justify-center">
-            <FileText className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Export CSV</p>
-            <p className="text-[12px] text-[var(--color-muted)]">Spreadsheet format</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-
-        <button onClick={() => fileRef.current?.click()} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#34c759] flex items-center justify-center">
-            <Upload className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Import Data</p>
-            <p className="text-[12px] text-[var(--color-muted)]">Restore from backup</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-        <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-      </div>
-
-      {importStatus && (
-        <p className={'text-xs text-center py-1 mb-4 ' + (importStatus === 'success' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
-          {importStatus === 'success' ? 'Import successful!' : 'Import failed'}
-        </p>
-      )}
-
-      {/* ACCOUNT */}
-      <p className="ios-section-header">Account</p>
-      <div className="ios-section mb-6">
-        <button onClick={handleLogout} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#ff9500] flex items-center justify-center">
-            <LogOut className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal">Log Out</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-[var(--color-muted)]" />
-        </button>
-      </div>
-
-      {/* DANGER */}
-      <p className="ios-section-header !text-[var(--color-danger)]">Danger Zone</p>
-      <div className="ios-section mb-8">
-        <button onClick={handleClearData} className="ios-section-item w-full">
-          <div className="w-[30px] h-[30px] rounded-lg bg-[#ff453a] flex items-center justify-center">
-            <Trash2 className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[15px] font-normal text-[var(--color-danger)]">Clear All Data</p>
-            <p className="text-[12px] text-[var(--color-muted)]">Delete everything permanently</p>
-          </div>
-        </button>
-      </div>
-
-      <div className="text-center mb-8 pb-4">
-        <p className="text-[12px] text-[var(--color-muted)]">Finora v2.0</p>
-        <p className="text-[11px] text-[var(--color-muted)] mt-0.5">Made with care</p>
-      </div>
-
-      {/* Currency Picker */}
+      {/* Currency Bottom Sheet Selector */}
       <AnimatePresence>
         {showCurrencyPicker && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-end justify-center"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center px-4"
             onClick={() => setShowCurrencyPicker(false)}
           >
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--color-card)] rounded-t-3xl w-full max-w-lg pb-8 max-h-[70vh]"
+              className="bg-[var(--color-card)] rounded-t-[32px] border-t border-[var(--color-border)]/40 w-full max-w-md p-5 pb-8 max-h-[72vh] overflow-y-auto z-110 shadow-2xl flex flex-col"
             >
-              <div className="w-10 h-1 bg-[var(--color-border)] rounded-full mx-auto mt-3 mb-4" />
-              <h3 className="text-lg font-bold text-center mb-4">Select Currency</h3>
-              <div className="overflow-y-auto max-h-[50vh]">
-                <div className="ios-section mx-4">
-                  {CURRENCIES.map((cur) => (
-                    <button
-                      key={cur.code}
-                      onClick={() => { setCurrency(cur.code); setShowCurrencyPicker(false); }}
-                      className="ios-section-item w-full"
-                    >
-                      <div className="w-[30px] h-[30px] rounded-lg bg-[var(--color-surface)] flex items-center justify-center text-xs font-bold text-[var(--color-primary)]">
+              <div className="w-12 h-1 bg-[var(--color-border)]/70 rounded-full mx-auto mb-5" />
+              <h3 className="text-[17px] font-black text-center text-[var(--color-text)] mb-4">
+                Select Base Currency
+              </h3>
+              
+              <div className="space-y-1.5">
+                {CURRENCIES.map((cur) => (
+                  <button
+                    key={cur.code}
+                    onClick={() => { setCurrency(cur.code); setShowCurrencyPicker(false); }}
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-[var(--color-surface)]/25 transition-all text-left outline-none haptic ${
+                      currency === cur.code ? 'bg-[var(--color-surface)] border border-[var(--color-border)]/45' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]/35 flex items-center justify-center text-[13.5px] font-black text-[var(--color-primary)]">
                         {cur.symbol}
                       </div>
-                      <div className="flex-1 text-left">
-                        <p className="text-[15px] font-normal">{cur.name}</p>
-                        <p className="text-[12px] text-[var(--color-muted)]">{cur.code}</p>
+                      <div>
+                        <p className="text-[14px] font-bold text-[var(--color-text)]">{cur.name}</p>
+                        <p className="text-[11px] text-[var(--color-muted)] font-semibold mt-0.5">{cur.code}</p>
                       </div>
-                      {currency === cur.code && (
-                        <Check className="w-5 h-5 text-[var(--color-primary)]" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Passcode Setup Modal */}
-      <AnimatePresence>
-        {showPasscodeSetup && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
-            onClick={() => setShowPasscodeSetup(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--color-card)] rounded-3xl p-6 w-full max-w-xs"
-            >
-              <h3 className="text-lg font-bold text-center mb-1">
-                {codeStep === 1 ? 'Set Passcode' : 'Confirm Passcode'}
-              </h3>
-              <p className="text-xs text-[var(--color-muted)] text-center mb-4">
-                {codeStep === 1 ? 'Enter a 4-digit code' : 'Re-enter your code'}
-              </p>
-
-              <div className="flex justify-center gap-3 mb-4">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className={'w-3.5 h-3.5 rounded-full transition-all ' + (i < currentCode.length ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]')} />
+                    </div>
+                    {currency === cur.code && (
+                      <div className="w-6 h-6 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
-              {codeError && <p className="text-xs text-[var(--color-danger)] text-center mb-2">{codeError}</p>}
-
-              <div className="grid grid-cols-3 gap-2">
-                {setupKeys.map((key, idx) => {
-                  if (key === '') return <div key={idx} />;
-                  if (key === 'del') return (
-                    <button key={idx} onClick={handleCodeDelete} className="h-12 rounded-2xl flex items-center justify-center text-sm text-[var(--color-muted)] active:bg-[var(--color-surface)]">DEL</button>
-                  );
-                  return (
-                    <button key={idx} onClick={() => handleCodeDigit(key)} className="h-12 rounded-2xl bg-[var(--color-surface)] text-base font-semibold active:bg-[var(--color-border)] transition-colors">{key}</button>
-                  );
-                })}
-              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Daily Limit Modal */}
+      {/* Daily Spending Limit Modal */}
       <AnimatePresence>
         {showDailyLimit && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={() => setShowDailyLimit(false)}
           >
             <motion.div
@@ -491,68 +487,115 @@ export default function Settings() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--color-card)] rounded-3xl p-6 w-full max-w-xs"
+              className="bg-[var(--color-card)] border border-[var(--color-border)]/55 rounded-3xl p-5 w-full max-w-sm shadow-2xl flex flex-col"
             >
               <div className="flex items-center justify-center mb-4">
-                <div className="w-14 h-14 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/10">
                   <ShieldAlert className="w-7 h-7 text-orange-500" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-center mb-1">Daily Spending Limit</h3>
-              <p className="text-xs text-[var(--color-muted)] text-center mb-5">
-                Set a maximum daily spending amount
+              <h3 className="text-[17px] font-black text-center text-[var(--color-text)] leading-tight mb-1">
+                Daily Spend Limits
+              </h3>
+              <p className="text-[11.5px] text-[var(--color-muted)] text-center font-bold mb-4">
+                Configure maximum daily allowances
               </p>
 
-              <input
-                type="number"
-                value={dailyLimitAmount}
-                onChange={(e) => setDailyLimitAmount(e.target.value)}
-                placeholder="Amount per day"
-                autoFocus
-                className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] text-[17px] font-semibold text-center focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 mb-4"
-              />
-
-              <button
-                onClick={() => setDailyLimitStrict(!dailyLimitStrict)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-[var(--color-surface)] mb-4"
-              >
-                <div>
-                  <p className="text-[14px] font-medium text-left">Strict Mode</p>
-                  <p className="text-[11px] text-[var(--color-muted)] text-left">Block transactions when limit is exceeded</p>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--color-muted)] px-1">Daily Cap Amount ({currentCurrency.symbol})</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={dailyLimitAmount}
+                    onChange={(e) => setDailyLimitAmount(e.target.value)}
+                    placeholder="Enter limit amount"
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[16px] font-extrabold text-center focus:outline-none text-[var(--color-text)]"
+                  />
                 </div>
-                <div className={`ios-toggle ${dailyLimitStrict ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-border)]'}`}>
-                  <div className={`ios-toggle-knob ${dailyLimitStrict ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
-                </div>
-              </button>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    await setSetting('dailyLimit', { amount: 0, isStrictMode: false });
-                    refreshAllData(); // <== Added this!
-                    setDailyLimitAmount('');
-                    setDailyLimitStrict(false);
-                    setShowDailyLimit(false);
-                  }}
-                  className="flex-1 py-3 rounded-2xl bg-[var(--color-surface)] text-[var(--color-danger)] font-semibold text-[14px]"
-                >
-                  Remove
-                </button>
-                <button
-                  onClick={async () => {
-                    const amount = parseFloat(dailyLimitAmount);
-                    if (amount > 0) {
-                      await setSetting('dailyLimit', { amount, isStrictMode: dailyLimitStrict });
-                      refreshAllData(); // <== Added this!
-                    }
-                    setShowDailyLimit(false);
-                  }}
-                  disabled={!dailyLimitAmount || parseFloat(dailyLimitAmount) <= 0}
-                  className="flex-1 py-3 rounded-2xl gradient-primary text-white font-semibold text-[14px] disabled:opacity-50"
-                >
-                  Save
-                </button>
+                <div className="flex items-center justify-between px-3 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/35">
+                  <div>
+                    <p className="text-[13px] font-bold text-[var(--color-text)]">Strict Mode enforcement</p>
+                    <p className="text-[10px] text-[var(--color-muted)] font-semibold mt-0.5">Reject transaction if limit is crossed</p>
+                  </div>
+                  <button
+                    onClick={() => setDailyLimitStrict(!dailyLimitStrict)}
+                    className={`w-11 h-6.5 rounded-full p-0.5 transition-colors duration-250 cursor-pointer outline-none relative flex items-center ${
+                      dailyLimitStrict ? 'bg-[var(--color-danger)] justify-end' : 'bg-[var(--color-border)]/65 justify-start'
+                    }`}
+                  >
+                    <motion.div
+                      layout
+                      className="w-5 h-5 rounded-full bg-white shadow-sm"
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  </button>
+                </div>
+                
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={async () => {
+                      await setSetting('dailyLimit', { amount: 0, isStrictMode: false });
+                      refreshAllData();
+                      setDailyLimitAmount('');
+                      setDailyLimitStrict(false);
+                      setShowDailyLimit(false);
+                    }}
+                    className="flex-1 py-3.5 rounded-2xl bg-red-500/10 border border-red-500/10 font-bold text-[13px] text-[var(--color-danger)] haptic"
+                  >
+                    Deactivate
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const amount = parseFloat(dailyLimitAmount);
+                      if (amount > 0) {
+                        await setSetting('dailyLimit', { amount, isStrictMode: dailyLimitStrict });
+                        refreshAllData();
+                      }
+                      setShowDailyLimit(false);
+                    }}
+                    disabled={!dailyLimitAmount || parseFloat(dailyLimitAmount) <= 0}
+                    className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-[13px] disabled:opacity-50 haptic shadow-md"
+                  >
+                    Apply Cap
+                  </button>
+                </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Passcode PIN Setup Overlay */}
+      <AnimatePresence>
+        {showPasscodeSetup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowPasscodeSetup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[var(--color-card)] border border-[var(--color-border)]/55 rounded-3xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center"
+            >
+              <PasscodeInput
+                title={codeStep === 1 ? 'Configure PIN' : 'Verify passcode'}
+                subtitle={codeStep === 1 ? 'Select a secure 4-digit pin' : 'Confirm your newly chosen code'}
+                onComplete={handlePasscodeSetupComplete}
+                onCancel={() => setShowPasscodeSetup(false)}
+              />
+              {codeError && (
+                <p className="text-[11px] text-[var(--color-danger)] font-bold text-center mt-3 animate-pulse">
+                  {codeError}
+                </p>
+              )}
             </motion.div>
           </motion.div>
         )}

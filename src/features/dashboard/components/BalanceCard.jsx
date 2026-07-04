@@ -1,64 +1,91 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import moneyBg from '../../../assets/money.png';
+import { Eye, EyeOff, Plus, Repeat, Send, Brain } from 'lucide-react';
 import { formatCurrency } from '../../../utils/helpers';
+import { useNavigate } from 'react-router-dom';
 
-export default function BalanceCard({ monthName, balanceVisible, toggleBalanceVisible, totalBalance, monthIncome, monthExpense }) {
+export default function BalanceCard({ 
+  monthName, 
+  balanceVisible, 
+  toggleBalanceVisible, 
+  totalBalance, 
+  monthIncome, 
+  monthExpense,
+  onOpenCoach
+}) {
+  const navigate = useNavigate();
   const maskedAmount = '••••••';
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="gradient-card rounded-3xl p-5 pb-5 mb-3 text-white shadow-xl shadow-black/10 relative overflow-hidden"
+      className="mb-6 pt-3 px-1"
     >
-      <div className="absolute inset-0 w-full h-full pointer-events-none mix-blend-overlay opacity-50">
-        <img
-          src={moneyBg}
-          alt="Money Background"
-          className="w-full h-full object-cover scale-110 rotate-2"
-        />
+      {/* Muted header & Eye Toggle */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[12px] text-[var(--color-muted)] font-semibold uppercase tracking-wider">
+          Main balance
+        </span>
+        <button
+          onClick={toggleBalanceVisible}
+          className="w-7 h-7 rounded-full bg-[var(--color-card)] border border-[var(--color-border-subtle)] flex items-center justify-center active:scale-90 transition-transform text-[var(--color-muted)] hover:text-[var(--color-text)]"
+          title={balanceVisible ? 'Hide Balance' : 'Show Balance'}
+        >
+          {balanceVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/[0.04] rounded-full -ml-10 -mb-10 pointer-events-none" />
-      <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
-
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[13px] text-white/50 font-medium tracking-wide">{monthName}</p>
-          <button
-            onClick={toggleBalanceVisible}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors haptic"
-          >
-            {balanceVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        <p className="text-[13px] text-white/60 mb-0.5 mt-2">Total Balance</p>
-        <p className="text-[36px] font-bold tracking-tight leading-none mb-5 drop-shadow-sm">
+      {/* Large Balance Amount */}
+      <div className="flex items-baseline mb-4">
+        <h1 className="text-[38px] font-bold tracking-tight text-[var(--color-text)] leading-none">
           {balanceVisible ? formatCurrency(totalBalance) : maskedAmount}
-        </p>
+        </h1>
+        <span className="text-[12px] text-[var(--color-muted)] font-semibold ml-2.5">
+          {monthName}
+        </span>
+      </div>
 
-        <div className="flex gap-2">
-          <div className="flex-1 bg-white/[0.08] backdrop-blur-sm rounded-2xl p-3 flex items-center gap-2.5 shadow-inner border border-white/5">
-            <div className="w-9 h-9 rounded-[12px] bg-[#34C759]/20 flex items-center justify-center shrink-0">
-              <ArrowDownLeft className="w-4 h-4 text-[#34C759]" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] text-white/50 font-medium tracking-wide uppercase">Income</p>
-              <p className="text-[15px] font-bold truncate tracking-tight">{balanceVisible ? formatCurrency(monthIncome) : '••••'}</p>
-            </div>
+      {/* Action Buttons Row */}
+      <div className="grid grid-cols-4 gap-2.5 mt-2">
+        <button
+          onClick={() => navigate('/add?type=expense')}
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-primary)]/40 active:scale-95 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)] group-hover:scale-105 transition-transform mb-1.5">
+            <Plus className="w-5 h-5" strokeWidth={2.5} />
           </div>
-          <div className="flex-1 bg-white/[0.08] backdrop-blur-sm rounded-2xl p-3 flex items-center gap-2.5 shadow-inner border border-white/5">
-            <div className="w-9 h-9 rounded-[12px] bg-[#FF3B30]/20 flex items-center justify-center shrink-0">
-              <ArrowUpRight className="w-4 h-4 text-[#FF3B30]" strokeWidth={2.5} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] text-white/50 font-medium tracking-wide uppercase">Spent</p>
-              <p className="text-[15px] font-bold truncate tracking-tight">{balanceVisible ? formatCurrency(monthExpense) : '••••'}</p>
-            </div>
+          <span className="text-[11px] font-medium text-[var(--color-text)]">Add</span>
+        </button>
+
+        <button
+          onClick={() => navigate('/add?type=transfer')}
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-primary)]/40 active:scale-95 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform mb-1.5">
+            <Repeat className="w-4.5 h-4.5" strokeWidth={2.5} />
           </div>
-        </div>
+          <span className="text-[11px] font-medium text-[var(--color-text)]">Move</span>
+        </button>
+
+        <button
+          onClick={() => navigate('/add?type=income')}
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-primary)]/40 active:scale-95 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform mb-1.5">
+            <Send className="w-4.5 h-4.5" strokeWidth={2.5} />
+          </div>
+          <span className="text-[11px] font-medium text-[var(--color-text)]">Send</span>
+        </button>
+
+        <button
+          onClick={onOpenCoach}
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border-subtle)] hover:border-[var(--color-primary)]/40 active:scale-95 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform mb-1.5">
+            <Brain className="w-4.5 h-4.5" strokeWidth={2.2} />
+          </div>
+          <span className="text-[11px] font-medium text-[var(--color-text)]">Coach</span>
+        </button>
       </div>
     </motion.div>
   );

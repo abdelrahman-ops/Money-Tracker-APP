@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { formatCurrency } from '../utils/helpers';
 import { useWalletStore } from '../store/walletStore';
@@ -7,14 +7,17 @@ import { useTransactionStore } from '../store/transactionStore';
 import { createTransaction, updateTransaction, deleteTransaction, fetchTransaction } from '../services/transactionService';
 import { fetchTemplates as apiFetchTemplates } from '../services/apiServices';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Delete, Calendar, FileText, Repeat, StickyNote, CheckCheck, Plus } from 'lucide-react';
+import {
+  X, Delete, Calendar, FileText, Repeat, StickyNote, CheckCheck,
+  ChevronRight, ChevronDown, ArrowDownCircle, ArrowUpCircle, RefreshCw, FolderOpen
+} from 'lucide-react';
 import LucideIcon from '../components/LucideIcon';
 import { refreshAllData } from '../utils/refreshData';
 
 const TYPES = [
-  { key: 'expense', label: 'Expense', color: 'text-[var(--color-danger)]', activeBg: 'bg-red-500/10' },
-  { key: 'income', label: 'Income', color: 'text-[var(--color-success)]', activeBg: 'bg-emerald-500/10' },
-  { key: 'transfer', label: 'Transfer', color: 'text-[var(--color-primary)]', activeBg: 'bg-blue-500/10' },
+  { key: 'expense', label: 'Expense', color: '#FF3B30', bgLight: '#FFF0EF', icon: ArrowDownCircle },
+  { key: 'income', label: 'Income', color: '#22c55e', bgLight: '#EEFBF3', icon: ArrowUpCircle },
+  { key: 'transfer', label: 'Transfer', color: '#007AFF', bgLight: '#EDF4FF', icon: RefreshCw },
 ];
 
 export default function AddTransaction() {
@@ -22,11 +25,11 @@ export default function AddTransaction() {
   const { editId } = useParams();
   const [searchParams] = useSearchParams();
   const isEditing = !!editId;
-  const nameRef = useRef(null);
+  const noteRef = useRef(null);
+
   const returnMonth = searchParams.get('returnMonth');
   const returnDate = searchParams.get('returnDate');
 
-  // API-backed stores
   const accounts = useWalletStore((s) => s.wallets);
   const allCategories = useCategoryStore((s) => s.categories);
 
@@ -41,44 +44,40 @@ export default function AddTransaction() {
   const [date, setDate] = useState(searchParams.get('date') || new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [justSaved, setJustSaved] = useState(false);
+  const [shakeAmount, setShakeAmount] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
   const categories = allCategories.filter((c) => c.type === type);
-
   const catMap = {};
   allCategories.forEach((c) => { catMap[c._id] = c; });
+  const activeCategory = categoryId ? catMap[categoryId] : null;
+  const activeType = TYPES.find((t) => t.key === type);
+  const activeAccount = accounts.find((a) => a._id === accountId);
 
-  // Load templates from API
-  useEffect(() => {
-    apiFetchTemplates().then(setTemplates).catch(() => {});
-  }, []);
+  useEffect(() => { apiFetchTemplates().then(setTemplates).catch(() => {}); }, []);
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
       const paramAccountId = searchParams.get('accountId');
-      if (paramAccountId) {
-        setAccountId(paramAccountId);
-      } else {
-        setAccountId(accounts[0]._id);
-      }
+      setAccountId(paramAccountId || accounts[0]._id);
       if (accounts.length > 1) setToAccountId(accounts[1]._id);
     }
-  }, [accounts]);
+  }, [accounts, accountId, searchParams]);
 
-  // Read QuickInput pre-fill params
   useEffect(() => {
-    const paramAmount = searchParams.get('amount');
-    const paramName = searchParams.get('name');
-    const paramCategoryId = searchParams.get('categoryId');
+    const pAmt = searchParams.get('amount');
+    const pName = searchParams.get('name');
+    const pCat = searchParams.get('categoryId');
+    if (pAmt) setAmount(pAmt);
+    if (pName) setName(pName);
+    if (pCat) setCategoryId(pCat);
+  }, [searchParams]);
 
-    if (paramAmount) setAmount(paramAmount);
-    if (paramName) setName(paramName);
-    if (paramCategoryId) setCategoryId(paramCategoryId);
-  }, []);
-
-  // Load existing transaction for editing
   useEffect(() => {
     if (isEditing) {
       fetchTransaction(editId).then((txn) => {
@@ -95,75 +94,30 @@ export default function AddTransaction() {
         }
       });
     }
-  }, [editId]);
+  }, [editId, isEditing]);
 
-  const resetForm = () => {
-    setAmount('0');
-    setName('');
-    setNote('');
-    setCategoryId(null);
-    setShowNotes(false);
-  };
-
-  const handleKeyPress = useCallback((key) => {
-    setAmount((prev) => {
-      if (key === 'C') return '0';
-      if (key === 'backspace') {
-        const next = prev.slice(0, -1);
-        return next === '' ? '0' : next;
-      }
-      if (key === '.') {
-        if (prev.includes('.')) return prev;
-        return prev + '.';
-      }
-      if (prev === '0' && key !== '.') return key;
-      const parts = prev.split('.');
-      if (parts.length === 2 && parts[1].length >= 2) return prev;
-      if (prev.replace('.', '').length >= 10) return prev;
-      return prev + key;
-    });
-  }, []);
+  const resetForm = () => { setAmount('0'); setName(''); setNote(''); setCategoryId(null); setShowNotes(false); };
+  const triggerShake = () => { setShakeAmount(true); setTimeout(() => setShakeAmount(false), 500); };
 
   const doSave = async () => {
     const numAmount = parseFloat(amount);
-    if (numAmount <= 0 || !accountId) return false;
+    if (isNaN(numAmount) || numAmount <= 0) { triggerShake(); return false; }
+    if (!accountId) return false;
     if (type === 'transfer' && !toAccountId) return false;
     if (type === 'transfer' && accountId === toAccountId) return false;
 
     const txnData = {
-      amount: numAmount,
-      type,
-      name,
-      note: note || undefined,
-      accountId,
+      amount: numAmount, type,
+      name: name.trim() || (type === 'transfer' ? 'Transfer' : activeCategory?.name || 'Other'),
+      note: note.trim() || undefined, accountId,
       toAccountId: type === 'transfer' ? toAccountId : undefined,
       categoryId: type !== 'transfer' ? categoryId : undefined,
-      date: date,
+      date,
     };
 
-    // console.log('[AddTransaction] Saving:', txnData);
-
-    if (isEditing) {
-      const result = await updateTransaction(editId, txnData);
-      if (!result.success) {
-        console.error('Update failed:', result.error);
-        return false;
-      }
-    } else {
-      const result = await createTransaction(txnData);
-      if (!result.success) {
-        if (result.blocked) {
-          console.warn('Blocked:', result.reason);
-        } else {
-          console.error('Create failed:', result.error);
-        }
-        return false;
-      }
-    }
-
-    // Refresh all global state (Insights, Wallets, Transactions, etc)
+    if (isEditing) { const r = await updateTransaction(editId, txnData); if (!r.success) return false; }
+    else { const r = await createTransaction(txnData); if (!r.success) return false; }
     refreshAllData();
-
     return true;
   };
 
@@ -172,126 +126,222 @@ export default function AddTransaction() {
     try {
       const ok = await doSave();
       if (ok) {
-        if (returnDate) {
-          navigate('/calendar?returnDate=' + returnDate, { replace: true });
-        } else if (returnMonth) {
-          navigate('/calendar?returnMonth=' + returnMonth, { replace: true });
-        } else {
-          navigate(-1);
-        }
+        setShowSuccessOverlay(true);
+        setTimeout(() => {
+          if (returnDate) navigate('/calendar?returnDate=' + returnDate, { replace: true });
+          else if (returnMonth) navigate('/calendar?returnMonth=' + returnMonth, { replace: true });
+          else navigate('/dashboard', { replace: true });
+        }, 800);
       }
-    } catch (err) {
-      console.error('Error saving:', err);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { console.error(err); } finally { setSaving(false); }
   };
 
   const handleSaveAndAnother = async () => {
     setSaving(true);
     try {
       const ok = await doSave();
-      if (ok) {
-        setSavedCount((c) => c + 1);
-        setJustSaved(true);
-        setTimeout(() => setJustSaved(false), 1200);
-        resetForm();
-      }
-    } catch (err) {
-      console.error('Error saving:', err);
-    } finally {
-      setSaving(false);
-    }
+      if (ok) { setSavedCount((c) => c + 1); setJustSaved(true); setTimeout(() => setJustSaved(false), 1200); resetForm(); }
+    } catch (err) { console.error(err); } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
     if (!isEditing) return;
     const result = await deleteTransaction(editId);
-    if (!result.success) {
-      console.error('Delete failed:', result.error);
-      return;
-    }
+    if (!result.success) return;
     refreshAllData();
-    if (returnDate) {
-      navigate('/calendar?returnDate=' + returnDate, { replace: true });
-    } else if (returnMonth) {
-      navigate('/calendar?returnMonth=' + returnMonth, { replace: true });
-    } else {
-      navigate(-1);
-    }
+    if (returnDate) navigate('/calendar?returnDate=' + returnDate, { replace: true });
+    else if (returnMonth) navigate('/calendar?returnMonth=' + returnMonth, { replace: true });
+    else navigate('/dashboard', { replace: true });
   };
 
   const handleApplyTemplate = (t) => {
-    setType(t.type);
-    setAmount(String(t.amount));
-    setName(t.title);
+    setType(t.type); setAmount(String(t.amount)); setName(t.title);
     setCategoryId(t.categoryId || null);
     if (t.defaultAccountId) setAccountId(t.defaultAccountId);
     setShowTemplates(false);
   };
 
+  // Keypad handler
+  const handleKeyPress = (key) => {
+    if (key === 'backspace') {
+      setAmount((prev) => {
+        if (prev.length <= 1) return '0';
+        return prev.slice(0, -1);
+      });
+    } else if (key === '.') {
+      if (amount.includes('.')) return;
+      setAmount((prev) => prev + '.');
+    } else {
+      setAmount((prev) => {
+        if (prev === '0') return key;
+        // Max 2 decimal digits
+        const parts = prev.split('.');
+        if (parts[1] && parts[1].length >= 2) return prev;
+        if (prev.length >= 12) return prev;
+        return prev + key;
+      });
+    }
+  };
+
   const keypadKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'backspace'];
+  const visibleCategories = categories.slice(0, 7);
+  const hasMoreCategories = categories.length > 7;
+
+  // Format display amount
+  const getAmountFontSize = () => {
+    if (amount.length > 10) return 'text-[26px]';
+    if (amount.length > 7) return 'text-[32px]';
+    return 'text-[40px]';
+  };
+
+  const formatDisplayDate = (d) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (d === today) return 'Today';
+    if (d === yesterday) return 'Yesterday';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <motion.div
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-      className="fixed inset-0 bg-[var(--color-bg)] z-50 flex flex-col safe-top safe-bottom"
+      transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+      className="fixed inset-0 z-50 flex flex-col safe-top safe-bottom select-none"
+      style={{ backgroundColor: activeType.bgLight }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      {/* ─── Top Bar ─── */}
+      <div className="flex items-center justify-between px-4 py-2.5 shrink-0">
         <button
           onClick={() => {
             if (returnDate) navigate('/calendar?returnDate=' + returnDate);
             else if (returnMonth) navigate('/calendar?returnMonth=' + returnMonth);
             else navigate(-1);
           }}
-          className="p-2 rounded-2xl min-w-touch min-h-touch flex items-center justify-center active:scale-90 transition-transform"
+          className="w-9 h-9 rounded-full bg-white/60 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-all"
         >
-          <X className="w-6 h-6" />
+          <X className="w-4.5 h-4.5 text-gray-600" />
         </button>
-        <div className="flex bg-[var(--color-surface)] rounded-2xl p-1 gap-0.5">
-          {TYPES.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => { setType(t.key); setCategoryId(null); }}
-              className={'px-3.5 py-1.5 rounded-xl text-[13px] font-semibold transition-all ' +
-                (type === t.key ? t.activeBg + ' ' + t.color : 'text-[var(--color-muted)]')
-              }
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
+
+        <h2 className="text-[15px] font-semibold text-gray-700">
+          {isEditing ? 'Edit Transaction' : 'New Transaction'}
+        </h2>
+
+        <div className="flex items-center gap-1.5">
           {isEditing ? (
-            <button onClick={handleDelete} className="p-2 rounded-2xl text-[var(--color-danger)] min-w-touch min-h-touch flex items-center justify-center">
-              <X className="w-5 h-5" />
+            <button onClick={handleDelete} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center active:scale-90 transition-all">
+              <Delete className="w-4.5 h-4.5 text-red-500" />
             </button>
           ) : (
-            <button
-              onClick={() => setShowTemplates(true)}
-              className="p-2 rounded-2xl min-w-touch min-h-touch flex items-center justify-center active:scale-90 transition-transform"
-            >
-              <FileText className="w-5 h-5 text-[var(--color-primary)]" />
+            <button onClick={() => setShowTemplates(true)} className="w-9 h-9 rounded-full bg-white/60 flex items-center justify-center active:scale-90 transition-all">
+              <FileText className="w-4.5 h-4.5 text-gray-500" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Saved counter badge */}
+      {/* ─── Type Tabs ─── */}
+      <div className="flex gap-2 px-4 mb-3 shrink-0">
+        {TYPES.map((t) => {
+          const Icon = t.icon;
+          const active = type === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => { setType(t.key); setCategoryId(null); }}
+              className="flex-1 py-2 rounded-2xl flex items-center justify-center gap-1.5 text-[13px] font-medium transition-all active:scale-[0.97]"
+              style={{
+                backgroundColor: active ? t.color : 'rgba(255,255,255,0.55)',
+                color: active ? '#fff' : '#6b7280',
+                boxShadow: active ? `0 4px 14px -4px ${t.color}40` : 'none',
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ─── Meta Row: Date + Note + Account ─── */}
+      <div className="flex gap-2 px-4 mb-3 shrink-0">
+        {/* Date chip */}
+        <label className="relative flex-1 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-sm cursor-pointer active:scale-[0.98] transition-all">
+          <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <span className="text-[12px] text-gray-600 font-medium truncate">{formatDisplayDate(date)}</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </label>
+
+        {/* Note chip */}
+        <button
+          onClick={() => { setShowNotes(!showNotes); if (!showNotes) setTimeout(() => noteRef.current?.focus(), 150); }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl active:scale-[0.98] transition-all"
+          style={{ backgroundColor: note ? `${activeType.color}15` : 'rgba(255,255,255,0.55)' }}
+        >
+          <StickyNote className="w-3.5 h-3.5" style={{ color: note ? activeType.color : '#9ca3af' }} />
+          <span className="text-[12px] font-medium truncate max-w-[60px]" style={{ color: note ? activeType.color : '#6b7280' }}>
+            {note || 'Note'}
+          </span>
+        </button>
+
+        {/* Account chip */}
+        <button
+          onClick={() => setShowAccountSheet(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-sm active:scale-[0.98] transition-all"
+        >
+          <span className="w-5 h-5 rounded-md text-[9px] font-bold flex items-center justify-center shrink-0" style={{ backgroundColor: `${activeType.color}15`, color: activeType.color }}>
+            {activeAccount?.name?.charAt(0) || '?'}
+          </span>
+          <span className="text-[12px] text-gray-600 font-medium truncate max-w-[60px]">{activeAccount?.name || 'Account'}</span>
+          <ChevronDown className="w-3 h-3 text-gray-400" />
+        </button>
+      </div>
+
+      {/* ─── Note Expansion ─── */}
+      <AnimatePresence>
+        {showNotes && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="px-4 mb-2 shrink-0 overflow-hidden"
+          >
+            <input
+              ref={noteRef}
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add a note..."
+              className="w-full px-4 py-2.5 rounded-xl bg-white/70 text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Description Input ─── */}
+      <div className="px-4 mb-2 shrink-0">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={type === 'transfer' ? 'Transfer note...' : 'What was it for?'}
+          className="w-full px-4 py-2.5 rounded-xl bg-white/70 text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all text-center"
+        />
+      </div>
+
+      {/* ─── Saved count pill ─── */}
       <AnimatePresence>
         {savedCount > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mb-1"
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            className="flex justify-center mb-1 shrink-0"
           >
-            <div className={'flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ' +
-              (justSaved ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]' : 'bg-[var(--color-surface)] text-[var(--color-muted)]')
-            }>
+            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium shadow-sm transition-colors ${
+              justSaved ? 'bg-emerald-500 text-white' : 'bg-white/60 text-gray-500'
+            }`}>
               <CheckCheck className="w-3.5 h-3.5" />
               {savedCount} saved
             </div>
@@ -299,126 +349,103 @@ export default function AddTransaction() {
         )}
       </AnimatePresence>
 
-      {/* Amount Display */}
-      <div className="px-6 py-3 text-center">
-        <p className={'text-[42px] font-bold tracking-tight ' +
-          (type === 'expense' ? 'text-[var(--color-danger)]' : type === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-primary)]')
-        }>
-          {type === 'expense' ? '-' : type === 'income' ? '+' : ''}{formatCurrency(parseFloat(amount) || 0)}
-        </p>
-      </div>
+      {/* ─── Amount Display ─── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 shrink min-h-0">
+        <motion.div
+          animate={shakeAmount ? { x: [0, -8, 8, -8, 8, -4, 4, 0] } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-baseline justify-center"
+        >
+          <span className={`${getAmountFontSize()} font-bold tracking-tight`} style={{ color: activeType.color }}>
+            {type === 'expense' ? '-' : type === 'income' ? '+' : ''}
+            {amount === '0' ? '0' : amount}
+          </span>
+        </motion.div>
 
-      {/* Name Input */}
-      <div className="px-4 mb-2">
-        <input
-          ref={nameRef}
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="What was this for?"
-          className="w-full px-4 py-3 rounded-2xl bg-[var(--color-card)] text-center text-[15px] font-medium placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all ios-card"
-        />
-      </div>
-
-      {/* Notes toggle + input */}
-      <div className="px-4 mb-2">
-        {!showNotes ? (
-          <button
-            onClick={() => setShowNotes(true)}
-            className="flex items-center gap-1.5 text-[12px] text-[var(--color-muted)] px-1 py-1"
-          >
-            <StickyNote className="w-3.5 h-3.5" /> Add note
-          </button>
-        ) : (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Add a note..."
-              autoFocus
-              className="w-full px-4 py-2.5 rounded-2xl bg-[var(--color-card)] text-center text-[13px] placeholder:text-[var(--color-muted)] focus:outline-none ios-card"
-            />
-          </motion.div>
-        )}
-      </div>
-
-      {/* Category Chips + Account + Date */}
-      <div className="px-4 space-y-2 mb-2">
+        {/* Category Scroll (non-transfer only) */}
         {type !== 'transfer' && categories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            <button
-              onClick={() => setCategoryId(null)}
-              className={'shrink-0 px-3.5 py-2 rounded-2xl text-[13px] font-medium transition-all ' +
-                (!categoryId ? 'gradient-primary text-white' : 'bg-[var(--color-card)] text-[var(--color-muted)] ios-card')
-              }
-            >
-              None
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat._id}
-                onClick={() => setCategoryId(cat._id)}
-                className={'shrink-0 px-3.5 py-2 rounded-2xl text-[13px] font-medium transition-all flex items-center gap-1.5 ' +
-                  (categoryId === cat._id ? 'gradient-primary text-white' : 'bg-[var(--color-card)] text-[var(--color-muted)] ios-card')
-                }
-              >
-                <LucideIcon name={cat.icon} className="w-3.5 h-3.5" style={{ color: categoryId === cat._id ? '#fff' : cat.color }} />
-                {cat.name}
-              </button>
-            ))}
+          <div className="w-full mt-4">
+            <div className="flex gap-2 overflow-x-auto pb-1 px-1" style={{ scrollbarWidth: 'none' }}>
+              {visibleCategories.map((cat) => {
+                const isSelected = categoryId === cat._id;
+                return (
+                  <button
+                    key={cat._id}
+                    onClick={() => setCategoryId(cat._id)}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95"
+                    style={{
+                      backgroundColor: isSelected ? cat.color : 'rgba(255,255,255,0.65)',
+                      color: isSelected ? '#fff' : '#4b5563',
+                      boxShadow: isSelected ? `0 3px 10px -3px ${cat.color}50` : 'none',
+                    }}
+                  >
+                    <LucideIcon name={cat.icon} className="w-3.5 h-3.5" style={{ color: isSelected ? '#fff' : cat.color }} />
+                    <span className="text-[11px] font-medium whitespace-nowrap">{cat.name}</span>
+                  </button>
+                );
+              })}
+              {hasMoreCategories && (
+                <button
+                  onClick={() => setShowCategorySheet(true)}
+                  className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/50 text-gray-400 active:scale-95 transition-all"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium">More</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="flex gap-2">
-          <select
-            value={accountId || ''}
-            onChange={(e) => setAccountId(e.target.value)}
-            className="flex-1 px-3 py-2.5 rounded-2xl bg-[var(--color-card)] text-[13px] focus:outline-none ios-card"
-          >
-            {accounts.map((a) => (
-              <option key={a._id} value={a._id}>{a.name}</option>
-            ))}
-          </select>
-          {type === 'transfer' && (
-            <select
-              value={toAccountId || ''}
-              onChange={(e) => setToAccountId(e.target.value)}
-              className="flex-1 px-3 py-2.5 rounded-2xl bg-[var(--color-card)] text-[13px] focus:outline-none ios-card"
-            >
-              {accounts.filter((a) => a._id !== accountId).map((a) => (
-                <option key={a._id} value={a._id}>{a.name}</option>
+        {/* Transfer destination account */}
+        {type === 'transfer' && (
+          <div className="w-full mt-4">
+            <p className="text-[11px] text-gray-400 font-medium text-center mb-2">To Account</p>
+            <div className="flex gap-2 justify-center">
+              {accounts.filter((a) => a._id !== accountId).map((acc) => (
+                <button
+                  key={acc._id}
+                  onClick={() => setToAccountId(acc._id)}
+                  className="px-4 py-2 rounded-xl text-[12px] font-medium transition-all active:scale-95"
+                  style={{
+                    backgroundColor: toAccountId === acc._id ? activeType.color : 'rgba(255,255,255,0.65)',
+                    color: toAccountId === acc._id ? '#fff' : '#4b5563',
+                  }}
+                >
+                  {acc.name}
+                </button>
               ))}
-            </select>
-          )}
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="px-3 py-2.5 rounded-2xl bg-[var(--color-card)] text-[13px] focus:outline-none w-auto ios-card"
-          />
-        </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Keypad */}
-      <div className="mt-auto px-4 pb-4">
-        <div className="grid grid-cols-3 gap-2 mb-3">
+      {/* ─── Keypad + Save ─── */}
+      <div className="bg-white rounded-t-[28px] shadow-[0_-4px_30px_rgba(0,0,0,0.06)] shrink-0 pb-2">
+        <div className="grid grid-cols-3 gap-px px-3 pt-3 pb-1.5">
           {keypadKeys.map((key) => (
             <button
               key={key}
-              onClick={() => key === 'backspace' ? handleKeyPress('backspace') : handleKeyPress(key)}
-              className="h-[48px] rounded-2xl bg-[var(--color-card)] flex items-center justify-center text-xl font-semibold active:bg-[var(--color-surface)] transition-colors ios-card"
+              onClick={() => handleKeyPress(key)}
+              className="h-[52px] rounded-2xl flex items-center justify-center active:scale-[0.93] active:bg-gray-100 transition-all"
             >
-              {key === 'backspace' ? <Delete className="w-5 h-5 text-[var(--color-muted)]" /> : key}
+              {key === 'backspace' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+              ) : (
+                <span className="text-[20px] font-medium text-gray-700">{key}</span>
+              )}
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+
+        {/* Action Buttons */}
+        <div className="flex gap-2.5 px-4 pb-2 pt-1">
           {!isEditing && (
             <button
               onClick={handleSaveAndAnother}
               disabled={saving || parseFloat(amount) <= 0}
-              className="flex-1 py-3.5 rounded-2xl bg-[var(--color-card)] border border-[var(--color-primary)]/30 text-[var(--color-primary)] font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-3.5 rounded-2xl text-[14px] font-semibold flex items-center justify-center gap-1.5 active:scale-[0.97] transition-all disabled:opacity-40 border"
+              style={{ borderColor: `${activeType.color}30`, color: activeType.color, backgroundColor: `${activeType.color}08` }}
             >
               <Repeat className="w-4 h-4" /> Save & Next
             </button>
@@ -426,80 +453,131 @@ export default function AddTransaction() {
           <button
             onClick={handleSave}
             disabled={saving || parseFloat(amount) <= 0}
-            className={(isEditing ? 'w-full' : 'flex-1') + ' py-3.5 rounded-2xl gradient-primary text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-50'}
+            className={`${isEditing ? 'w-full' : 'flex-1'} py-3.5 rounded-2xl text-white text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.97] transition-all disabled:opacity-40`}
+            style={{ backgroundColor: activeType.color, boxShadow: `0 6px 20px -6px ${activeType.color}50` }}
           >
-            {saving ? 'Saving...' : isEditing ? 'Update' : (savedCount > 0 ? 'Save & Done' : 'Save Entry')}
+            {saving ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : isEditing ? 'Update' : savedCount > 0 ? 'Save & Done' : 'Save'}
           </button>
         </div>
       </div>
 
-      {/* Template Picker Sheet */}
+      {/* ─── Category Bottom Sheet ─── */}
+      <AnimatePresence>
+        {showCategorySheet && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-end" onClick={() => setShowCategorySheet(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[28px] w-full max-w-lg pb-8 max-h-[70vh] flex flex-col shadow-2xl">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4" />
+              <div className="flex items-center justify-between px-5 mb-3">
+                <h3 className="text-[16px] font-semibold text-gray-800">All Categories</h3>
+                <button onClick={() => setShowCategorySheet(false)} className="p-1.5 rounded-full bg-gray-100 text-gray-400">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 grid grid-cols-4 gap-3 pb-6">
+                {categories.map((cat) => {
+                  const isSelected = categoryId === cat._id;
+                  return (
+                    <button key={cat._id} onClick={() => { setCategoryId(cat._id); setShowCategorySheet(false); }}
+                      className="flex flex-col items-center gap-1.5 p-1.5 rounded-2xl active:scale-95 transition-transform">
+                      <div className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
+                        style={{ backgroundColor: isSelected ? cat.color : `${cat.color}15` }}>
+                        <LucideIcon name={cat.icon} className="w-5 h-5" style={{ color: isSelected ? '#fff' : cat.color }} />
+                      </div>
+                      <span className="text-[10px] font-medium truncate max-w-full text-gray-600">{cat.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Account Bottom Sheet ─── */}
+      <AnimatePresence>
+        {showAccountSheet && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-end" onClick={() => setShowAccountSheet(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[28px] w-full max-w-lg pb-8 flex flex-col shadow-2xl">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4" />
+              <h3 className="text-[16px] font-semibold text-gray-800 text-center mb-3">Select Account</h3>
+              <div className="px-5 space-y-2 pb-4">
+                {accounts.map((acc) => (
+                  <button key={acc._id} onClick={() => { setAccountId(acc._id); setShowAccountSheet(false); }}
+                    className={`w-full p-4 rounded-2xl text-left flex justify-between items-center active:scale-[0.98] transition-all ${
+                      accountId === acc._id ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50 border-2 border-transparent'
+                    }`}>
+                    <div>
+                      <p className="text-[14px] font-medium text-gray-800">{acc.name}</p>
+                      <p className="text-[12px] text-gray-400 mt-0.5">{formatCurrency(acc.balance || 0)}</p>
+                    </div>
+                    {accountId === acc._id && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Templates Modal ─── */}
       <AnimatePresence>
         {showTemplates && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-end justify-center"
-            onClick={() => setShowTemplates(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-end" onClick={() => setShowTemplates(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--color-card)] rounded-t-3xl w-full max-w-lg pb-8 max-h-[60vh]"
-            >
-              <div className="w-10 h-1 bg-[var(--color-border)] rounded-full mx-auto mt-3 mb-4" />
-              <h3 className="text-lg font-bold text-center mb-4">Use Template</h3>
-              {templates.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <Repeat className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
-                  <p className="text-sm text-[var(--color-muted)]">No templates yet</p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1 mb-4">Create one to speed up adding entries</p>
-                  <button
-                    onClick={() => { setShowTemplates(false); navigate('/templates'); }}
-                    className="px-5 py-2.5 rounded-2xl gradient-primary text-white text-[13px] font-semibold"
-                  >
-                    Create Template
-                  </button>
-                </div>
-              ) : (
-                <div className="overflow-y-auto max-h-[40vh] px-4 space-y-1.5">
-                  {templates.map((t) => {
-                    const cat = catMap[t.categoryId];
-                    return (
-                      <button
-                        key={t._id}
-                        onClick={() => handleApplyTemplate(t)}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[var(--color-surface)] active:bg-[var(--color-border)] transition-colors"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: (cat?.color || '#007AFF') + '15' }}
-                        >
-                          {cat ? <LucideIcon name={cat.icon} className="w-5 h-5" style={{ color: cat.color }} /> : <Repeat className="w-5 h-5 text-[var(--color-primary)]" />}
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-[14px] font-semibold truncate">{t.title}</p>
-                          <p className="text-[11px] text-[var(--color-muted)]">{cat?.name || t.type}</p>
-                        </div>
-                        <p className={'text-[14px] font-bold ' + (t.type === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>
-                          {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                        </p>
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => { setShowTemplates(false); navigate('/templates'); }}
-                    className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl border border-dashed border-[var(--color-border)] text-[13px] font-semibold text-[var(--color-primary)] active:bg-[var(--color-surface)] transition-colors mt-2"
-                  >
-                    <Plus className="w-4 h-4" /> New Template
-                  </button>
-                </div>
-              )}
+              className="bg-white rounded-t-[28px] w-full max-w-lg pb-8 max-h-[70vh] flex flex-col shadow-2xl">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4" />
+              <h3 className="text-[16px] font-semibold text-gray-800 text-center mb-3">Templates</h3>
+              <div className="overflow-y-auto px-5 space-y-2 pb-4">
+                {templates.length === 0 ? (
+                  <p className="text-center py-6 text-[13px] text-gray-400">No templates yet</p>
+                ) : (
+                  templates.map((t) => (
+                    <button key={t._id} onClick={() => handleApplyTemplate(t)}
+                      className="w-full p-4 rounded-2xl bg-gray-50 text-left flex justify-between items-center active:scale-[0.98] transition-all">
+                      <div>
+                        <p className="text-[14px] font-medium text-gray-800">{t.title}</p>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">{t.type}</p>
+                      </div>
+                      <span className="text-[14px] font-semibold" style={{ color: activeType.color }}>{formatCurrency(t.amount)}</span>
+                    </button>
+                  ))
+                )}
+              </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Success Overlay ─── */}
+      <AnimatePresence>
+        {showSuccessOverlay && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center text-white">
+            <motion.div initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', damping: 15 }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-lg"
+              style={{ backgroundColor: activeType.color }}>
+              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <motion.path initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.15 }}
+                  strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </motion.div>
+            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="text-lg font-semibold">
+              {isEditing ? 'Updated!' : 'Saved!'}
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
