@@ -33,9 +33,16 @@ export default function AICoachDrawer({ isOpen, onClose, userName }) {
     }
   }, [isOpen, userName, messages.length, isAdminVerified]);
 
-  const handleVerifyPassword = (e) => {
+  const handleVerifyPassword = async (e) => {
     e.preventDefault();
-    if (adminPassword === 'finora-admin-ai' || adminPassword === 'admin123' || adminPassword === 'finora2026') {
+    if (!adminPassword) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+    setLoading(true);
+    setPasswordError('');
+    try {
+      await apiClient.post('/ai/verify-admin', { password: adminPassword });
       localStorage.setItem('finora_ai_verified', 'true');
       setIsAdminVerified(true);
       setPasswordError('');
@@ -48,8 +55,11 @@ export default function AICoachDrawer({ isOpen, onClose, userName }) {
           time: new Date(),
         },
       ]);
-    } else {
-      setPasswordError('Invalid admin passcode');
+    } catch (err) {
+      console.error(err);
+      setPasswordError(err.response?.data?.error || 'Invalid admin passcode');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,6 +98,10 @@ export default function AICoachDrawer({ isOpen, onClose, userName }) {
       }
     } catch (err) {
       console.error(err);
+      if (err.response?.status === 403) {
+        localStorage.removeItem('finora_ai_verified');
+        setIsAdminVerified(false);
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -130,6 +144,10 @@ export default function AICoachDrawer({ isOpen, onClose, userName }) {
       }
     } catch (err) {
       console.error(err);
+      if (err.response?.status === 403) {
+        localStorage.removeItem('finora_ai_verified');
+        setIsAdminVerified(false);
+      }
       setMessages((prev) => [
         ...prev,
         {
