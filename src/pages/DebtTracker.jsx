@@ -136,7 +136,7 @@ export default function DebtTracker() {
   ];
 
   return (
-    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
+    <div className="px-4 pt-5 pb-24 w-full max-w-md mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -398,7 +398,7 @@ export default function DebtTracker() {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Lunch split, Car rent share"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -409,7 +409,7 @@ export default function DebtTracker() {
                     value={formPerson}
                     onChange={(e) => setFormPerson(e.target.value)}
                     placeholder="e.g. Sarah Connor"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -420,7 +420,7 @@ export default function DebtTracker() {
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     placeholder="e.g. 150"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -430,7 +430,7 @@ export default function DebtTracker() {
                     type="date"
                     value={formDueDate}
                     onChange={(e) => setFormDueDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -497,7 +497,7 @@ export default function DebtTracker() {
                   <select
                     value={paymentAccountId || ''}
                     onChange={(e) => setPaymentAccountId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[13.5px] font-bold focus:outline-none text-[var(--color-text)]"
+                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold focus:outline-none text-[var(--color-text)]"
                   >
                     {accounts.map((a) => (
                       <option key={a._id} value={a._id}>

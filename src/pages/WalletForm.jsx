@@ -102,7 +102,7 @@ export default function WalletForm() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--color-bg)] pb-24 safe-top safe-bottom max-w-lg mx-auto">
+    <div className="min-h-[100dvh] bg-[var(--color-bg)] pb-24 safe-top safe-bottom w-full max-w-md mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]/20 bg-[var(--color-card)]/50 backdrop-blur-md sticky top-0 z-30">
         <button
@@ -152,7 +152,7 @@ export default function WalletForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Chase Bank, Pocket Cash"
-              className="w-full px-4 py-3.5 bg-transparent text-[15px] font-semibold focus:outline-none placeholder:text-[var(--color-muted)]/50 text-[var(--color-text)]"
+              className="w-full px-4 py-3.5 bg-transparent text-base font-semibold focus:outline-none placeholder:text-[var(--color-muted)]/50 text-[var(--color-text)]"
             />
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function WalletForm() {
             Balance
           </label>
           <div className="bg-[var(--color-card)] border border-[var(--color-border)]/55 rounded-2xl p-0.5 shadow-sm relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-extrabold text-[var(--color-muted)] pointer-events-none">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-extrabold text-[var(--color-muted)] pointer-events-none">
               Amt
             </span>
             <input
@@ -193,7 +193,7 @@ export default function WalletForm() {
               step="any"
               value={balance}
               onChange={(e) => setBalance(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-transparent text-[15px] font-bold focus:outline-none text-[var(--color-text)]"
+              className="w-full pl-12 pr-4 py-3.5 bg-transparent text-base font-bold focus:outline-none text-[var(--color-text)]"
             />
           </div>
         </div>

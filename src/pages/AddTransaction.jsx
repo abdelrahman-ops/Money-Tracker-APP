@@ -192,7 +192,7 @@ export default function AddTransaction() {
   const getAmountFontSize = () => {
     if (amount.length > 10) return 'text-[26px]';
     if (amount.length > 7) return 'text-[32px]';
-    return 'text-[40px]';
+    return 'text-4xl';
   };
 
   const formatDisplayDate = (d) => {
@@ -203,11 +203,11 @@ export default function AddTransaction() {
 
   return (
     <motion.div
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
+      initial={{ y: '100%', x: '-50%' }}
+      animate={{ y: 0, x: '-50%' }}
+      exit={{ y: '100%', x: '-50%' }}
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-      className="fixed inset-0 z-50 flex flex-col safe-top safe-bottom select-none"
+      className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex flex-col safe-top safe-bottom select-none"
       style={{ backgroundColor: activeType.bgLight }}
     >
       {/* ─── Top Bar ─── */}
@@ -349,7 +349,7 @@ export default function AddTransaction() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Add a note..."
-              className="w-full px-4 py-2.5 rounded-xl bg-white/70 text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+              className="w-full h-12 px-4 rounded-xl bg-white/70 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
             />
           </motion.div>
         )}
@@ -362,7 +362,7 @@ export default function AddTransaction() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={type === 'transfer' ? 'Transfer note...' : 'What was it for?'}
-          className="w-full px-4 py-2.5 rounded-xl bg-white/70 text-[13px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all text-center"
+          className="w-full h-12 px-4 rounded-xl bg-white/70 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all text-center"
         />
       </div>
 

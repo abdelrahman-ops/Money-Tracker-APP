@@ -147,7 +147,7 @@ export default function TemplateManager() {
   };
 
   return (
-    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
+    <div className="px-4 pt-5 pb-24 w-full max-w-md mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -299,7 +299,7 @@ export default function TemplateManager() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Netflix, Rent Payment"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -310,7 +310,7 @@ export default function TemplateManager() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 

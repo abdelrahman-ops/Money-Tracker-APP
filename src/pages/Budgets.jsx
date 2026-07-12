@@ -547,7 +547,7 @@ export default function Budgets() {
                     value={budgetName}
                     onChange={(e) => setBudgetName(e.target.value)}
                     placeholder={budgetType === 'total' ? 'Overall Budget' : 'e.g. Grocery Limit'}
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/55 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 text-[14px] font-semibold text-[var(--color-text)] placeholder:text-[var(--color-muted)]"
+                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/55 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 text-base font-semibold text-[var(--color-text)] placeholder:text-[var(--color-muted)]"
                   />
                 </div>
 
@@ -607,7 +607,7 @@ export default function Budgets() {
                       value={budgetLimit}
                       onChange={(e) => setBudgetLimit(e.target.value)}
                       placeholder="Enter amount limit"
-                      className="w-full pl-9 pr-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/55 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 text-[14px] font-black text-[var(--color-text)]"
+                      className="w-full pl-9 pr-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/55 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 text-base font-black text-[var(--color-text)]"
                     />
                   </div>
                 </div>

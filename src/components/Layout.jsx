@@ -14,13 +14,13 @@ export default function Layout() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex flex-col min-h-[100dvh] w-full max-w-md mx-auto">
       <main className="flex-1 pb-24 safe-top">
         <Outlet />
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 safe-bottom z-50 px-5 pb-4 pt-1.5 pointer-events-none">
-        <div className="relative max-w-lg mx-auto flex items-center justify-between bg-[var(--color-card)]/90 backdrop-blur-xl border border-[var(--color-border)]/60 rounded-[22px] px-3 py-1.5 pointer-events-auto shadow-xl shadow-black/10 dark:shadow-black/25">
+        <div className="relative max-w-md mx-auto flex items-center justify-between bg-[var(--color-card)]/90 backdrop-blur-xl border border-[var(--color-border)]/60 rounded-[22px] px-3 py-1.5 pointer-events-auto shadow-xl shadow-black/10 dark:shadow-black/25">
           {navItems.map((item) => {
             if (item.isFab) {
               return (

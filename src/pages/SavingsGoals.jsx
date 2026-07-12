@@ -110,7 +110,7 @@ export default function SavingsGoals() {
   const totalTarget = goals.reduce((s, g) => s + g.targetAmount, 0);
 
   return (
-    <div className="px-4 pt-5 pb-24 max-w-lg mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
+    <div className="px-4 pt-5 pb-24 w-full max-w-md mx-auto bg-[var(--color-bg)] min-h-[100dvh]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -359,7 +359,7 @@ export default function SavingsGoals() {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Vacation Trip, Emergency Fund"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14.5px] font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-semibold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -370,7 +370,7 @@ export default function SavingsGoals() {
                     value={formTarget}
                     onChange={(e) => setFormTarget(e.target.value)}
                     placeholder="e.g. 5000"
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14.5px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -380,7 +380,7 @@ export default function SavingsGoals() {
                     type="date"
                     value={formDeadline}
                     onChange={(e) => setFormDeadline(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[14.5px] font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
+                    className="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold rounded-2xl focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)]"
                   />
                 </div>
 
@@ -500,7 +500,7 @@ export default function SavingsGoals() {
                   <select
                     value={depositAccountId || ''}
                     onChange={(e) => setDepositAccountId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-[13.5px] font-bold focus:outline-none text-[var(--color-text)]"
+                    className="w-full px-4 py-3 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]/45 text-base font-bold focus:outline-none text-[var(--color-text)]"
                   >
                     {accounts.map((a) => (
                       <option key={a._id} value={a._id}>

@@ -110,7 +110,7 @@ export default function WalletInsights() {
   const walletColor = account.color || '#007AFF';
 
   return (
-    <div className="pb-24 bg-[var(--color-bg)] min-h-[100dvh] max-w-lg mx-auto">
+    <div className="pb-24 bg-[var(--color-bg)] min-h-[100dvh] w-full max-w-md mx-auto">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--color-bg)]/80 backdrop-blur-md px-4 pt-5 pb-3 flex items-center justify-between border-b border-[var(--color-border)]/20">
         <button

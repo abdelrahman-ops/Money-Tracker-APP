@@ -60,7 +60,7 @@ export default function Register() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
             />
           </div>
 
@@ -73,7 +73,7 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
             />
           </div>
 
@@ -87,7 +87,7 @@ export default function Register() {
               required
               minLength={6}
               autoComplete="new-password"
-              className="w-full pl-12 pr-12 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
+              className="w-full pl-12 pr-12 py-4 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-base focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all"
             />
             <button
               type="button"
