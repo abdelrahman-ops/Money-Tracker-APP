@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore, CURRENCIES } from '../store/appStore';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, Globe, Check } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Globe, Check } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -11,7 +11,8 @@ export default function Register() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
   const clearError = useAuthStore((s) => s.clearError);
-  
+  const darkMode = useAppStore((s) => s.darkMode);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -40,13 +41,12 @@ export default function Register() {
         className="w-full max-w-sm"
       >
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[var(--color-primary)]/30">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-[32px] font-bold tracking-tight">Create Account</h1>
-          <p className="text-[14px] text-[var(--color-muted)] mt-1">
-            Get started with Finora today
+        <div className="text-center mb-6">
+          <img src={darkMode ? '/logo-blank.png' : '/logo-blank.png'} className="w-14 h-14 mx-auto mb-3 object-contain" alt="Finora Logo" />
+          <h1 className="brand-logo mb-1">Finora</h1>
+          <h2 className="text-[22px] font-bold tracking-tight">Create Account</h2>
+          <p className="text-[13px] text-[var(--color-muted)] mt-1">
+            Get started with your private finance tracker today
           </p>
         </div>
 

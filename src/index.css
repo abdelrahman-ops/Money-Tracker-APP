@@ -4,35 +4,35 @@
 
 @layer base {
   :root {
-    --color-bg: #faf8f5;
+    --color-bg: #f8fafc;
     --color-card: #ffffff;
-    --color-border: #f1ede6;
-    --color-border-subtle: rgba(0, 0, 0, 0.03);
-    --color-text: #2b2927;
-    --color-muted: #857e75;
-    --color-primary: #5c62d6;
-    --color-primary-light: #8389f5;
-    --color-surface: #f2ede0;
+    --color-border: #e2e8f0;
+    --color-border-subtle: rgba(15, 23, 42, 0.04);
+    --color-text: #0f172a;
+    --color-muted: #64748b;
+    --color-primary: #725bd0;
+    --color-primary-light: #2f79d3;
+    --color-surface: #f1f5f9;
     --color-success: #22c55e;
     --color-danger: #ff3b30;
     --color-warning: #ff9500;
-    --color-secondary-bg: #faf8f5;
+    --color-secondary-bg: #f8fafc;
   }
 
   .dark {
-    --color-bg: #000000;
-    --color-card: #121212;
-    --color-border: #1e1e1e;
+    --color-bg: #090d16;
+    --color-card: #111827;
+    --color-border: #1f2937;
     --color-border-subtle: rgba(255, 255, 255, 0.05);
-    --color-text: #f8f9fa;
-    --color-muted: #6c757d;
-    --color-primary: #0A84FF;
-    --color-primary-light: #64D2FF;
-    --color-surface: #1e1e1e;
+    --color-text: #f8fafc;
+    --color-muted: #94a3b8;
+    --color-primary: #8572e3;
+    --color-primary-light: #4c95f5;
+    --color-surface: #1e293b;
     --color-success: #30D158;
     --color-danger: #FF453A;
     --color-warning: #FF9F0A;
-    --color-secondary-bg: #121212;
+    --color-secondary-bg: #111827;
   }
 
   html {
@@ -44,7 +44,7 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -58,7 +58,7 @@
 
   input, select, textarea {
     font-size: 16px !important;
-    font-family: 'Poppins', sans-serif !important;
+    font-family: 'Inter', sans-serif !important;
   }
 }
 
@@ -111,7 +111,7 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, #007AFF, #0056b3);
+    background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
   }
 
   .gradient-card {
@@ -145,10 +145,11 @@
 
   /* brand logo handwritten */
   .brand-logo {
-    font-family: 'Caveat', cursive;
-    font-size: 32px;
-    font-weight: 600;
-    background: linear-gradient(135deg, var(--color-primary), #a855f7);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }

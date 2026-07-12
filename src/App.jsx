@@ -14,7 +14,6 @@ import LockScreen from './components/LockScreen';
 import SplashScreen from './onboarding/SplashScreen';
 import InstallBanner from './components/InstallBanner';
 import GlobalPasscodeModal from './components/GlobalPasscodeModal';
-import Onboarding from './onboarding/Onboarding';
 
 // Lazy load page components
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
@@ -140,20 +139,11 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Splash screen
+  // Splash screen (which also handles onboarding for new users)
   if (showSplash) {
     return (
       <div className="min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text)]">
         <SplashScreen onFinish={hideSplash} />
-      </div>
-    );
-  }
-
-  // Onboarding
-  if (!hasOnboarded) {
-    return (
-      <div className="min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text)]">
-        <Onboarding onFinish={completeOnboarding} />
       </div>
     );
   }

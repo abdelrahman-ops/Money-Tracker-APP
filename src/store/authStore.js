@@ -21,6 +21,9 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: false, error: message });
         return { success: false, error: message };
       }
+      if (data?.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
       set({
         user: data.user,
         isAuthenticated: true,
@@ -48,6 +51,9 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: false, error: message });
         return { success: false, error: message };
       }
+      if (data?.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
       set({
         user: data.user,
         isAuthenticated: true,
@@ -67,6 +73,7 @@ export const useAuthStore = create((set) => ({
     } catch (err) {
       console.error('Logout error:', err);
     }
+    localStorage.removeItem('auth_token');
     set({
       user: null,
       isAuthenticated: false,
@@ -76,7 +83,6 @@ export const useAuthStore = create((set) => ({
 
   clearError: () => set({ error: null }),
 
-  // Called on app startup to restore active session from cookies
   hydrate: async () => {
     set({ isLoading: true });
     try {
@@ -89,6 +95,7 @@ export const useAuthStore = create((set) => ({
           isHydrated: true,
         });
       } else {
+        localStorage.removeItem('auth_token');
         set({
           user: null,
           isAuthenticated: false,
@@ -97,6 +104,7 @@ export const useAuthStore = create((set) => ({
         });
       }
     } catch {
+      localStorage.removeItem('auth_token');
       set({
         user: null,
         isAuthenticated: false,

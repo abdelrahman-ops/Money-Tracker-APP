@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+let rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+if (!rawApiUrl.endsWith('/api') && !rawApiUrl.endsWith('/api/')) {
+  rawApiUrl = rawApiUrl.endsWith('/') ? `${rawApiUrl}api` : `${rawApiUrl}/api`;
+}
+const API_BASE = rawApiUrl;
 
 export const ENDPOINTS = {
   // Auth

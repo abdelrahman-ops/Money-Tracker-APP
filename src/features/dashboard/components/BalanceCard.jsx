@@ -19,7 +19,7 @@ export default function BalanceCard({
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 bg-gradient-to-br from-[#5c62d6] to-[#8c52ff] dark:from-[#3f43b3] dark:to-[#683cb8] rounded-[28px] p-6 shadow-xl shadow-indigo-500/15 relative overflow-hidden"
+      className="mb-6 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] rounded-[28px] p-6 shadow-xl shadow-[var(--color-primary)]/15 relative overflow-hidden"
     >
       {/* Decorative colored glow circles (Pinterest design language) */}
       <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/5 blur-xl pointer-events-none" />

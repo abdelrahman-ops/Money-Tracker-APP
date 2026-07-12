@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+let rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+if (!rawApiUrl.endsWith('/api') && !rawApiUrl.endsWith('/api/')) {
+  rawApiUrl = rawApiUrl.endsWith('/') ? `${rawApiUrl}api` : `${rawApiUrl}/api`;
+}
+const API_BASE = rawApiUrl;
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -8,6 +12,18 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true, // Enable sending cookies with requests for Better Auth
 });
+
+// Request interceptor to attach Bearer Token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Simple response interceptor to catch unauthorized requests
 apiClient.interceptors.response.use(
